@@ -1,21 +1,26 @@
 import { useMemo, useRef, useEffect, useState } from 'react';
 import { Stage, Layer, Rect, Text, Line, Group } from 'react-konva';
-import { useAllSymbols } from '../../store/useAppStore';
+import { useStromkreise, useAllSymbols } from '../../store/useAppStore';
+import { findDevice, DIN_RAIL_TE_PER_ROW } from '../../data/dinRailCatalog';
 
-interface CabinetRow {
-  lss: string;
-  rcd: string;
-  count: number;
-}
+const TE_PX = 30;
+const ROW_H = 50;
+const HEADER_H = 35;
 
-interface Cabinet {
-  verteiler: string;
-  rows: CabinetRow[];
+interface PlacedDevice {
+  deviceId: string;
+  label: string;
+  teWidth: number;
+  role: string;
+  x: number;
+  row: number;
+  color: string;
 }
 
 export function Aufbauplan() {
   const containerRef = useRef<HTMLDivElement>(null);
   const [dims, setDims] = useState({ width: 800, height: 600 });
+  const stromkreise = useStromkreise();
   const allSymbols = useAllSymbols();
 
   useEffect(() => {
@@ -29,93 +34,124 @@ export function Aufbauplan() {
     return () => obs.disconnect();
   }, []);
 
-  const cabinets = useMemo<Cabinet[]>(() => {
-    const vertMap = new Map<string, Map<string, CabinetRow>>();
-    for (const sym of allSymbols) {
-      const v = sym.attribute.verteiler || 'Unbekannt';
-      if (!sym.elektrisch.leitungsschutzschalter) continue;
-      if (!vertMap.has(v)) vertMap.set(v, new Map());
-      const rows = vertMap.get(v)!;
-      const key = `${sym.elektrisch.leitungsschutzschalter}|${sym.elektrisch.rcd}`;
-      if (!rows.has(key)) {
-        rows.set(key, { lss: sym.elektrisch.leitungsschutzschalter, rcd: sym.elektrisch.rcd, count: 0 });
-      }
-      rows.get(key)!.count++;
+  const verteilerGroups = useMemo(() => {
+    const groups = new Map<string, typeof stromkreise>();
+    for (const sk of stromkreise) {
+      const arr = groups.get(sk.verteilerId) ?? [];
+      arr.push(sk);
+      groups.set(sk.verteilerId, arr);
     }
-    return Array.from(vertMap.entries())
-      .map(([verteiler, rows]) => ({ verteiler, rows: Array.from(rows.values()) }))
-      .sort((a, b) => a.verteiler.localeCompare(b.verteiler));
-  }, [allSymbols]);
+    return groups;
+  }, [stromkreise]);
 
-  const CABINET_W = 300;
-  const CABINET_GAP = 40;
-  const ROW_H = 36;
-  const HEADER_H = 40;
-  const PAD = 40;
-  const totalW = Math.max(dims.width, cabinets.length * (CABINET_W + CABINET_GAP) + PAD * 2);
-  const maxRows = Math.max(1, ...cabinets.map((c) => c.rows.length));
-  const totalH = Math.max(dims.height, HEADER_H + PAD * 2 + maxRows * ROW_H + 80);
+  const verteilerLayouts = useMemo(() => {
+    const layouts: { name: string; devices: PlacedDevice[]; consumerCounts: Map<string, number> }[] = [];
+
+    for (const [name, sks] of verteilerGroups) {
+      const seen = new Set<string>();
+      const devices: PlacedDevice[] = [];
+      const consumerCounts = new Map<string, number>();
+
+      for (const sk of sks) {
+        const count = allSymbols.filter(s => s.stromkreisId === sk.id).length;
+        consumerCounts.set(sk.id, count);
+      }
+
+      for (const sk of sks) {
+        for (const d of sk.devices) {
+          const key = `${d.role}:${d.deviceId}`;
+          if (seen.has(key)) continue;
+          seen.add(key);
+          const device = findDevice(d.deviceId);
+          if (!device) continue;
+
+          const color = d.role === 'rcd' || d.role === 'rcd_type_b' ? '#fef3c7'
+            : d.role === 'afdd' ? '#fce7f3'
+            : d.role === 'rcbo' ? '#e0f2fe'
+            : '#dbeafe';
+
+          devices.push({
+            deviceId: d.deviceId,
+            label: device.label,
+            teWidth: device.teWidth,
+            role: d.role,
+            x: 0,
+            row: 0,
+            color,
+          });
+        }
+      }
+
+      let totalTE = 0;
+      let row = 0;
+      for (const d of devices) {
+        if (totalTE + d.teWidth > DIN_RAIL_TE_PER_ROW) {
+          row++;
+          totalTE = 0;
+        }
+        d.x = totalTE * TE_PX;
+        d.row = row;
+        totalTE += d.teWidth;
+      }
+
+      layouts.push({ name, devices, consumerCounts });
+    }
+    return layouts;
+  }, [verteilerGroups, allSymbols]);
+
+  const LEFT = 40;
+  const TOP = 60;
+  const CABINET_GAP = 30;
+
+  let totalHeight = TOP;
+  for (const layout of verteilerLayouts) {
+    const maxRow = Math.max(0, ...layout.devices.map(d => d.row));
+    totalHeight += HEADER_H + (maxRow + 1) * ROW_H + CABINET_GAP;
+  }
+  totalHeight = Math.max(totalHeight, dims.height);
+  const totalWidth = Math.max(dims.width, LEFT + DIN_RAIL_TE_PER_ROW * TE_PX + 80);
+
+  let yOffset = TOP;
 
   return (
     <div ref={containerRef} className="w-full h-full overflow-auto bg-white">
-      {allSymbols.length === 0 ? (
+      {verteilerLayouts.length === 0 ? (
         <div className="flex items-center justify-center h-full text-gray-400">
-          Kein Aufbauplan. Platzieren Sie Symbole mit elektrischen Eigenschaften.
+          Keine Stromkreise definiert.
         </div>
       ) : (
-        <Stage width={totalW} height={totalH}>
+        <Stage width={totalWidth} height={totalHeight}>
           <Layer>
-            <Text text="Aufbauplan — Schaltschrank" x={PAD} y={15} fontSize={18} fontStyle="bold" fill="#1f2937" />
-
-            {cabinets.map((cab, ci) => {
-              const cx = PAD + ci * (CABINET_W + CABINET_GAP);
-              const cy = PAD + HEADER_H;
-              const h = cab.rows.length * ROW_H + 50;
+            <Text text="Aufbauplan" x={LEFT} y={15} fontSize={18} fontStyle="bold" fill="#1f2937" />
+            {verteilerLayouts.map((layout, vi) => {
+              const maxRow = Math.max(0, ...layout.devices.map(d => d.row));
+              const cabinetH = HEADER_H + (maxRow + 1) * ROW_H + 10;
+              const startY = yOffset;
+              yOffset += cabinetH + CABINET_GAP;
 
               return (
-                <Group key={ci}>
-                  {/* Cabinet border */}
-                  <Rect x={cx} y={cy} width={CABINET_W} height={h} fill="#f9fafb" stroke="#374151" strokeWidth={2} cornerRadius={4} />
+                <Group key={vi}>
+                  {/* Cabinet background */}
+                  <Rect x={LEFT} y={startY} width={DIN_RAIL_TE_PER_ROW * TE_PX + 20} height={cabinetH} fill="#f9fafb" stroke="#d1d5db" strokeWidth={1} cornerRadius={4} />
                   {/* Cabinet name */}
-                  <Rect x={cx} y={cy} width={CABINET_W} height={28} fill="#374151" cornerRadius={[4, 4, 0, 0]} />
-                  <Text text={cab.verteiler} x={cx + 10} y={cy + 7} fontSize={13} fill="white" fontStyle="bold" />
+                  <Rect x={LEFT} y={startY} width={DIN_RAIL_TE_PER_ROW * TE_PX + 20} height={HEADER_H} fill="#374151" cornerRadius={[4, 4, 0, 0]} />
+                  <Text text={layout.name} x={LEFT + 10} y={startY + 10} fontSize={14} fontStyle="bold" fill="white" />
 
-                  {/* DIN rail */}
-                  <Line points={[cx + 10, cy + 38, cx + CABINET_W - 10, cy + 38]} stroke="#9ca3af" strokeWidth={3} />
+                  {/* DIN rails */}
+                  {Array.from({ length: maxRow + 1 }, (_, ri) => (
+                    <Line key={ri} points={[LEFT + 10, startY + HEADER_H + ri * ROW_H + 20, LEFT + DIN_RAIL_TE_PER_ROW * TE_PX + 10, startY + HEADER_H + ri * ROW_H + 20]} stroke="#9ca3af" strokeWidth={2} dash={[4, 4]} />
+                  ))}
 
-                  {/* Breakers */}
-                  {cab.rows.map((row, ri) => {
-                    const ry = cy + 45 + ri * ROW_H;
-                    const bw = 50;
+                  {/* Devices */}
+                  {layout.devices.map((d, di) => {
+                    const dx = LEFT + 10 + d.x;
+                    const dy = startY + HEADER_H + d.row * ROW_H + 5;
+                    const w = d.teWidth * TE_PX - 4;
                     return (
-                      <Group key={ri}>
-                        {/* LSS block */}
-                        <Rect x={cx + 15} y={ry} width={bw} height={28} fill="#dbeafe" stroke="#3b82f6" strokeWidth={1} cornerRadius={2} />
-                        <Text text={row.lss} x={cx + 17} y={ry + 8} fontSize={10} fill="#1e40af" fontStyle="bold" />
-
-                        {/* RCD block */}
-                        {row.rcd && (
-                          <>
-                            <Rect x={cx + 75} y={ry} width={bw + 10} height={28} fill="#fef3c7" stroke="#d97706" strokeWidth={1} cornerRadius={2} />
-                            <Text text={row.rcd} x={cx + 78} y={ry + 8} fontSize={9} fill="#92400e" />
-                          </>
-                        )}
-
-                        {/* Count */}
-                        <Text
-                          text={`${row.count} Verbraucher`}
-                          x={cx + 150}
-                          y={ry + 8}
-                          fontSize={10}
-                          fill="#6b7280"
-                        />
-
-                        {/* Connection line */}
-                        <Line
-                          points={[cx + 15 + bw, ry + 14, cx + 75, ry + 14]}
-                          stroke="#9ca3af"
-                          strokeWidth={1}
-                        />
+                      <Group key={di}>
+                        <Rect x={dx} y={dy} width={w} height={28} fill={d.color} stroke="#6b7280" strokeWidth={1} cornerRadius={2} />
+                        <Text text={d.label} x={dx + 2} y={dy + 4} fontSize={8} fill="#1f2937" width={w - 4} />
+                        <Text text={`${d.teWidth} TE`} x={dx + 2} y={dy + 16} fontSize={7} fill="#6b7280" width={w - 4} />
                       </Group>
                     );
                   })}

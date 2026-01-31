@@ -21,9 +21,8 @@ export interface SymbolFieldConfig {
     farbe: FieldRelevance;
     hoehe: FieldRelevance;
     kabeltyp: FieldRelevance;
-    verteiler: FieldRelevance;
   };
-  elektrisch: FieldRelevance;
+  stromkreis: FieldRelevance;
   knx: FieldRelevance;
 }
 
@@ -31,12 +30,53 @@ export interface Attribute {
   farbe: string;
   hoehe: number;
   kabeltyp: string;
-  verteiler: string;
 }
 
-export interface ElektrischeEigenschaften {
-  leitungsschutzschalter: string;
-  rcd: string;
+// --- DIN-Rail Device Catalog ---
+
+export type DinRailCategory =
+  | 'mcb' | 'rcd' | 'rcbo' | 'afdd'
+  | 'contactor' | 'meter' | 'spd'
+  | 'motor_protection' | 'fuse' | 'disconnect';
+
+export const DIN_RAIL_CATEGORY_LABELS: Record<DinRailCategory, string> = {
+  mcb: 'Leitungsschutzschalter',
+  rcd: 'FI-Schutzschalter',
+  rcbo: 'FI/LS-Kombination',
+  afdd: 'Brandschutzschalter',
+  contactor: 'Schütz',
+  meter: 'Zähler',
+  spd: 'Überspannungsschutz',
+  motor_protection: 'Motorschutz',
+  fuse: 'Schmelzsicherung',
+  disconnect: 'Trennschalter',
+};
+
+export interface DinRailDevice {
+  id: string;
+  category: DinRailCategory;
+  label: string;
+  teWidth: number;
+  poles: number;
+  svgFile: string;
+  ratedCurrent?: number;
+  characteristic?: string;
+  faultCurrent?: number;
+  rcdType?: 'A' | 'B' | 'F';
+}
+
+// --- Stromkreis (Circuit) ---
+
+export interface StromkreisDevice {
+  role: ElectricalPropertyType;
+  deviceId: string;
+}
+
+export interface Stromkreis {
+  id: string;
+  name: string;
+  verteilerId: string;
+  devices: StromkreisDevice[];
 }
 
 export interface KnxEigenschaften {
@@ -88,7 +128,6 @@ export interface SymbolDefinition {
   /** Path to SVG in /public, e.g. "/symbols/simple-socket-grounded_socket.svg" */
   svgPath: string;
   defaultAttribute: Attribute;
-  defaultElektrisch: ElektrischeEigenschaften;
   defaultKnx: KnxEigenschaften;
   defaultArtikel: ArtikelPosition[];
   fieldConfig: SymbolFieldConfig;
@@ -105,7 +144,7 @@ export interface PlacedSymbol {
   y: number;
   rotation: number;
   attribute: Attribute;
-  elektrisch: ElektrischeEigenschaften;
+  stromkreisId: string | null;
   knx: KnxEigenschaften;
   artikel: ArtikelPosition[];
 }
@@ -165,12 +204,12 @@ export const FEATURE_AREA_LABELS: Record<FeatureArea, string> = {
 export interface PropertyDefinition {
   id: string;
   name: string;
-  group: 'attribute' | 'elektrisch' | 'knx' | 'artikel';
+  group: 'attribute' | 'stromkreis' | 'knx' | 'artikel';
   description: string;
   /** Which feature areas consume this property */
   usedBy: FeatureArea[];
   /** Value type for display */
-  valueType: 'string' | 'number' | 'enum' | 'boolean';
+  valueType: 'string' | 'number' | 'enum' | 'boolean' | 'device_ref';
 }
 
 export const CATEGORY_LABELS: Record<SymbolCategory, string> = {

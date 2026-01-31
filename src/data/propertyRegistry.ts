@@ -31,55 +31,55 @@ export const propertyRegistry: PropertyDefinition[] = [
     usedBy: ['stromlaufplan', 'aufbauplan', 'stueckliste', 'pruefprotokoll'],
     valueType: 'string',
   },
-  {
-    id: 'verteiler',
-    name: 'Verteiler',
-    group: 'attribute',
-    description: 'Zugeordneter Verteiler/Schaltschrank (z.B. HV-EG, UV-OG)',
-    usedBy: ['stromlaufplan', 'aufbauplan'],
-    valueType: 'string',
-  },
 
-  // === ELEKTRISCH GROUP ===
+  // === STROMKREIS GROUP (replaces old elektrisch group) ===
+  {
+    id: 'stromkreis',
+    name: 'Stromkreis',
+    group: 'stromkreis',
+    description: 'Zugeordneter Stromkreis mit Verteiler und Schutzgeraeten',
+    usedBy: ['stromlaufplan', 'aufbauplan', 'pruefprotokoll'],
+    valueType: 'device_ref',
+  },
   {
     id: 'leitungsschutzschalter',
     name: 'Leitungsschutzschalter (MCB)',
-    group: 'elektrisch',
-    description: 'Ueberstromschutz -- Charakteristik + Nennstrom (z.B. B16A, C32A)',
+    group: 'stromkreis',
+    description: 'Ueberstromschutz -- via Geraete-Katalog',
     usedBy: ['stromlaufplan', 'aufbauplan', 'pruefprotokoll'],
-    valueType: 'string',
+    valueType: 'device_ref',
   },
   {
     id: 'rcd',
     name: 'FI-Schutzschalter (RCD)',
-    group: 'elektrisch',
-    description: 'Fehlerstromschutz -- Nennstrom + Fehlerstrom (z.B. 40A 30mA)',
+    group: 'stromkreis',
+    description: 'Fehlerstromschutz -- via Geraete-Katalog',
     usedBy: ['stromlaufplan', 'aufbauplan', 'pruefprotokoll'],
-    valueType: 'string',
+    valueType: 'device_ref',
   },
   {
     id: 'rcbo',
     name: 'FI/LS-Kombination (RCBO)',
-    group: 'elektrisch',
-    description: 'Kombinierter FI/LS-Schutz (z.B. 1+N B16A 30mA)',
+    group: 'stromkreis',
+    description: 'Kombinierter FI/LS-Schutz -- via Geraete-Katalog',
     usedBy: ['stromlaufplan', 'aufbauplan', 'pruefprotokoll'],
-    valueType: 'string',
+    valueType: 'device_ref',
   },
   {
     id: 'afdd',
     name: 'Brandschutzschalter (AFDD)',
-    group: 'elektrisch',
-    description: 'Arc Fault Detection Device -- Fehlerlichtbogenschutz',
+    group: 'stromkreis',
+    description: 'Fehlerlichtbogenschutz -- via Geraete-Katalog',
     usedBy: ['stromlaufplan', 'aufbauplan', 'pruefprotokoll'],
-    valueType: 'string',
+    valueType: 'device_ref',
   },
   {
     id: 'rcd_type_b',
     name: 'RCD Typ B',
-    group: 'elektrisch',
-    description: 'Allstromsensitiver FI fuer Wallbox/Wechselrichter',
+    group: 'stromkreis',
+    description: 'Allstromsensitiver FI -- via Geraete-Katalog',
     usedBy: ['stromlaufplan', 'aufbauplan', 'pruefprotokoll'],
-    valueType: 'string',
+    valueType: 'device_ref',
   },
 
   // === KNX GROUP ===
@@ -113,7 +113,7 @@ export const propertyRegistry: PropertyDefinition[] = [
 
 export const PROPERTY_GROUP_LABELS: Record<PropertyDefinition['group'], string> = {
   attribute: 'Attribute',
-  elektrisch: 'Elektrische Eigenschaften',
+  stromkreis: 'Stromkreis & Schutzgeraete',
   knx: 'KNX-Eigenschaften',
   artikel: 'Artikel & Leistungen',
 };

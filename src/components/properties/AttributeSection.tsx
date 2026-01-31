@@ -10,7 +10,6 @@ const FIELDS: { key: keyof PlacedSymbol['attribute']; label: string; type?: stri
   { key: 'farbe', label: 'Farbe' },
   { key: 'hoehe', label: 'Höhe (cm)', type: 'number' },
   { key: 'kabeltyp', label: 'Kabeltyp' },
-  { key: 'verteiler', label: 'Verteiler' },
 ];
 
 export function AttributeSection({ symbol, fieldConfig }: Props) {

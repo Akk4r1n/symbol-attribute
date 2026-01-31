@@ -10,7 +10,10 @@
       "Bash(npm run build:*)",
       "Bash(npx vite build:*)",
       "Bash(findstr:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(powershell -NoProfile -File NUL -Command:*)",
+      "Bash(powershell:*)",
+      "Bash(npx eslint:*)"
     ]
   }
 }

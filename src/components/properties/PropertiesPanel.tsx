@@ -31,8 +31,8 @@ export function PropertiesPanel() {
         </button>
       </div>
       {def && <AttributeSection symbol={symbol} fieldConfig={def.fieldConfig.attribute} />}
-      {def && def.fieldConfig.elektrisch !== 'hidden' && (
-        <ElektrischeSection symbol={symbol} relevance={def.fieldConfig.elektrisch} />
+      {def && def.fieldConfig.stromkreis !== 'hidden' && (
+        <ElektrischeSection symbol={symbol} relevance={def.fieldConfig.stromkreis} />
       )}
       {def && def.fieldConfig.knx !== 'hidden' && (
         <KnxSection symbol={symbol} relevance={def.fieldConfig.knx} />

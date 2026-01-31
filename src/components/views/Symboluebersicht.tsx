@@ -1,19 +1,23 @@
 import { useState, useMemo } from 'react';
 import { symbolCatalog } from '../../data/mockSymbols';
 import { propertyRegistry, PROPERTY_GROUP_LABELS } from '../../data/propertyRegistry';
+import { dinRailCatalog, findDevice } from '../../data/dinRailCatalog';
+import { useStromkreise, useAllSymbols } from '../../store/useAppStore';
 import {
   CATEGORY_LABELS,
   ELECTRICAL_PROPERTY_LABELS,
   CABINET_FIELD_LABELS,
   FEATURE_AREA_LABELS,
+  DIN_RAIL_CATEGORY_LABELS,
   type SymbolCategory,
   type SymbolDefinition,
   type ElectricalPropertyType,
   type FieldRelevance,
   type FeatureArea,
+  type DinRailCategory,
 } from '../../types';
 
-type SubTab = 'register' | 'eigenschaften' | 'elektrisch' | 'schaltschrank' | 'planverwendung';
+type SubTab = 'register' | 'eigenschaften' | 'elektrisch' | 'schaltschrank' | 'planverwendung' | 'dinrail' | 'stromkreise';
 
 const SUB_TABS: { key: SubTab; label: string }[] = [
   { key: 'register', label: 'Eigenschafts-Register' },
@@ -21,6 +25,8 @@ const SUB_TABS: { key: SubTab; label: string }[] = [
   { key: 'elektrisch', label: 'Elektrisch' },
   { key: 'schaltschrank', label: 'Schaltschrank' },
   { key: 'planverwendung', label: 'Planverwendung' },
+  { key: 'dinrail', label: 'DIN-Rail Geraete' },
+  { key: 'stromkreise', label: 'Stromkreise' },
 ];
 
 const ALL_ELECTRICAL: ElectricalPropertyType[] = ['mcb', 'rcd', 'rcbo', 'afdd', 'rcd_type_b'];
@@ -138,8 +144,7 @@ function EigenschaftenTable({ symbols }: { symbols: SymbolDefinition[] }) {
           <th className="text-center py-2 font-medium w-20">Farbe</th>
           <th className="text-center py-2 font-medium w-20">Hoehe</th>
           <th className="text-center py-2 font-medium w-20">Kabeltyp</th>
-          <th className="text-center py-2 font-medium w-20">Verteiler</th>
-          <th className="text-center py-2 font-medium w-20">Elektrisch</th>
+          <th className="text-center py-2 font-medium w-20">Stromkreis</th>
           <th className="text-center py-2 font-medium w-20">KNX</th>
         </tr>
       </thead>
@@ -152,8 +157,7 @@ function EigenschaftenTable({ symbols }: { symbols: SymbolDefinition[] }) {
             <td className="py-1.5 text-center"><RelevanceBadge value={sym.fieldConfig.attribute.farbe} /></td>
             <td className="py-1.5 text-center"><RelevanceBadge value={sym.fieldConfig.attribute.hoehe} /></td>
             <td className="py-1.5 text-center"><RelevanceBadge value={sym.fieldConfig.attribute.kabeltyp} /></td>
-            <td className="py-1.5 text-center"><RelevanceBadge value={sym.fieldConfig.attribute.verteiler} /></td>
-            <td className="py-1.5 text-center"><RelevanceBadge value={sym.fieldConfig.elektrisch} /></td>
+            <td className="py-1.5 text-center"><RelevanceBadge value={sym.fieldConfig.stromkreis} /></td>
             <td className="py-1.5 text-center"><RelevanceBadge value={sym.fieldConfig.knx} /></td>
           </tr>
         ))}
@@ -173,8 +177,6 @@ function ElektrischTable({ symbols }: { symbols: SymbolDefinition[] }) {
           {ALL_ELECTRICAL.map((ep) => (
             <th key={ep} className="text-center py-2 font-medium w-20">{ELECTRICAL_PROPERTY_LABELS[ep]}</th>
           ))}
-          <th className="text-left py-2 font-medium w-24">Default LSS</th>
-          <th className="text-left py-2 font-medium w-24">Default RCD</th>
         </tr>
       </thead>
       <tbody>
@@ -188,8 +190,6 @@ function ElektrischTable({ symbols }: { symbols: SymbolDefinition[] }) {
                 <Check active={sym.requiredElectricalProperties.includes(ep)} />
               </td>
             ))}
-            <td className="py-1.5 text-gray-600">{sym.defaultElektrisch.leitungsschutzschalter || '—'}</td>
-            <td className="py-1.5 text-gray-600">{sym.defaultElektrisch.rcd || '—'}</td>
           </tr>
         ))}
       </tbody>
@@ -261,8 +261,8 @@ function PlanverwendungTable({ symbols }: { symbols: SymbolDefinition[] }) {
       </thead>
       <tbody>
         {symbols.map((sym) => {
-          const inStromlaufplan = sym.fieldConfig.elektrisch !== 'hidden';
-          const inAufbauplan = sym.fieldConfig.elektrisch !== 'hidden' && sym.fieldConfig.attribute.verteiler !== 'hidden';
+          const inStromlaufplan = sym.fieldConfig.stromkreis !== 'hidden';
+          const inAufbauplan = sym.fieldConfig.stromkreis !== 'hidden';
           return (
             <tr key={sym.key} className="border-b border-gray-100 hover:bg-gray-50">
               <td className="py-1.5"><SymbolIcon sym={sym} /></td>
@@ -274,6 +274,118 @@ function PlanverwendungTable({ symbols }: { symbols: SymbolDefinition[] }) {
             </tr>
           );
         })}
+      </tbody>
+    </table>
+  );
+}
+
+function DinRailTable() {
+  const [search, setSearch] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState<DinRailCategory | 'all'>('all');
+
+  const filtered = useMemo(() => {
+    return dinRailCatalog.filter((d) => {
+      if (categoryFilter !== 'all' && d.category !== categoryFilter) return false;
+      if (search) {
+        return d.label.toLowerCase().includes(search.toLowerCase());
+      }
+      return true;
+    });
+  }, [search, categoryFilter]);
+
+  const categories = Object.entries(DIN_RAIL_CATEGORY_LABELS) as [DinRailCategory, string][];
+
+  return (
+    <div>
+      <div className="flex gap-3 mb-3 items-center">
+        <input
+          type="text"
+          placeholder="Suche nach Geraet..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="text-sm border border-gray-300 rounded px-3 py-1.5 w-64 focus:outline-none focus:ring-1 focus:ring-blue-400"
+        />
+        <select
+          value={categoryFilter}
+          onChange={(e) => setCategoryFilter(e.target.value as DinRailCategory | 'all')}
+          className="text-sm border border-gray-300 rounded px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-400"
+        >
+          <option value="all">Alle Kategorien</option>
+          {categories.map(([key, label]) => (
+            <option key={key} value={key}>{label}</option>
+          ))}
+        </select>
+        <span className="text-xs text-gray-400">{filtered.length} Geraete</span>
+      </div>
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="border-b border-gray-200 text-gray-500 sticky top-0 bg-white z-10">
+            <th className="text-left py-2 font-medium">Label</th>
+            <th className="text-left py-2 font-medium w-36">Kategorie</th>
+            <th className="text-center py-2 font-medium w-20">TE-Breite</th>
+            <th className="text-center py-2 font-medium w-16">Pole</th>
+            <th className="text-center py-2 font-medium w-24">Nennstrom</th>
+            <th className="text-center py-2 font-medium w-28">Charakteristik</th>
+            <th className="text-left py-2 font-medium w-40">SVG-Datei</th>
+          </tr>
+        </thead>
+        <tbody>
+          {filtered.map((d) => (
+            <tr key={d.id} className="border-b border-gray-100 hover:bg-gray-50">
+              <td className="py-1.5 font-medium text-gray-800">{d.label}</td>
+              <td className="py-1.5 text-xs text-gray-500">{DIN_RAIL_CATEGORY_LABELS[d.category]}</td>
+              <td className="py-1.5 text-center">{d.teWidth}</td>
+              <td className="py-1.5 text-center">{d.poles}</td>
+              <td className="py-1.5 text-center">{d.ratedCurrent ? `${d.ratedCurrent}A` : '\u2014'}</td>
+              <td className="py-1.5 text-center">{d.characteristic ?? '\u2014'}</td>
+              <td className="py-1.5 text-xs text-gray-500">{d.svgFile}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function StromkreiseTable() {
+  const stromkreise = useStromkreise();
+  const allSymbols = useAllSymbols();
+
+  const rows = useMemo(() => {
+    return stromkreise.map((sk) => {
+      const deviceLabels = sk.devices
+        .map((d) => findDevice(d.deviceId)?.label ?? d.deviceId)
+        .join(', ');
+      const assignedCount = allSymbols.filter((s) => s.stromkreisId === sk.id).length;
+      return { ...sk, deviceLabels, assignedCount };
+    });
+  }, [stromkreise, allSymbols]);
+
+  return (
+    <table className="w-full text-sm">
+      <thead>
+        <tr className="border-b border-gray-200 text-gray-500 sticky top-0 bg-white z-10">
+          <th className="text-left py-2 font-medium">Name</th>
+          <th className="text-left py-2 font-medium w-32">Verteiler</th>
+          <th className="text-left py-2 font-medium">Geraete</th>
+          <th className="text-center py-2 font-medium w-40">Zugeordnete Symbole</th>
+        </tr>
+      </thead>
+      <tbody>
+        {rows.length === 0 ? (
+          <tr>
+            <td colSpan={4} className="py-4 text-center text-gray-400">Keine Stromkreise vorhanden</td>
+          </tr>
+        ) : (
+          rows.map((r) => (
+            <tr key={r.id} className="border-b border-gray-100 hover:bg-gray-50">
+              <td className="py-1.5 font-medium text-gray-800">{r.name}</td>
+              <td className="py-1.5 text-xs text-gray-500">{r.verteilerId}</td>
+              <td className="py-1.5 text-xs text-gray-600">{r.deviceLabels || '\u2014'}</td>
+              <td className="py-1.5 text-center">{r.assignedCount}</td>
+            </tr>
+          ))
+        )}
       </tbody>
     </table>
   );
@@ -351,6 +463,8 @@ export function Symboluebersicht() {
         {activeTab === 'elektrisch' && <ElektrischTable symbols={filtered} />}
         {activeTab === 'schaltschrank' && <SchaltschrankTable symbols={filtered} />}
         {activeTab === 'planverwendung' && <PlanverwendungTable symbols={filtered} />}
+        {activeTab === 'dinrail' && <DinRailTable />}
+        {activeTab === 'stromkreise' && <StromkreiseTable />}
       </div>
 
       {/* Legend */}

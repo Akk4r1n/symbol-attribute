@@ -36,20 +36,30 @@ export interface Attribute {
 
 export type DinRailCategory =
   | 'mcb' | 'rcd' | 'rcbo' | 'afdd'
+  | 'sls' | 'main_switch'
   | 'contactor' | 'meter' | 'spd'
-  | 'motor_protection' | 'fuse' | 'disconnect';
+  | 'motor_protection' | 'fuse' | 'disconnect'
+  | 'relay' | 'power_supply'
+  | 'intercom_system' | 'energy' | 'contact';
 
 export const DIN_RAIL_CATEGORY_LABELS: Record<DinRailCategory, string> = {
   mcb: 'Leitungsschutzschalter',
   rcd: 'FI-Schutzschalter',
   rcbo: 'FI/LS-Kombination',
   afdd: 'Brandschutzschalter',
+  sls: 'SLS (Zählervorsicherung)',
+  main_switch: 'Hauptschalter',
   contactor: 'Schütz',
   meter: 'Zähler',
   spd: 'Überspannungsschutz',
   motor_protection: 'Motorschutz',
   fuse: 'Schmelzsicherung',
   disconnect: 'Trennschalter',
+  relay: 'Relais / Schaltaktor',
+  power_supply: 'Netzteil / Spannungsversorgung',
+  intercom_system: 'TKS / Sprechanlage',
+  energy: 'Energiemanagement',
+  contact: 'Hilfsgeräte / Kontakte',
 };
 
 export interface DinRailDevice {
@@ -103,6 +113,51 @@ export const ELECTRICAL_PROPERTY_LABELS: Record<ElectricalPropertyType, string> 
   rcd_type_b: 'RCD Typ B',
 };
 
+// --- Protection Specs (bottom-up circuit derivation) ---
+
+export interface ProtectionRequirement {
+  role: ElectricalPropertyType;
+  ratedCurrent?: number;
+  characteristic?: string;
+  faultCurrent?: number;
+  rcdType?: 'A' | 'B' | 'F';
+  poles?: number;
+}
+
+export type CircuitGroupingHint = 'socket' | 'light' | 'dedicated' | 'special';
+
+export const GROUPING_HINT_LABELS: Record<CircuitGroupingHint, string> = {
+  socket: 'Steckdosen',
+  light: 'Beleuchtung',
+  dedicated: 'Einzelstromkreis',
+  special: 'Sonstiges',
+};
+
+export interface ProtectionProfile {
+  requirements: ProtectionRequirement[];
+  dedicatedCircuit: boolean;
+  groupingHint: CircuitGroupingHint;
+}
+
+export interface DerivedCircuit {
+  id: string;
+  name: string;
+  verteilerId: string;
+  raumId: string;
+  groupingHint: CircuitGroupingHint;
+  symbolIds: string[];
+  resolvedDevices: StromkreisDevice[];
+  mergedRequirements: ProtectionRequirement[];
+}
+
+export interface CircuitGroupOverride {
+  groupId: string;
+  customName?: string;
+  verteilerId?: string;
+  deviceOverrides?: StromkreisDevice[];
+  locked: boolean;
+}
+
 export type CabinetFieldType = 'NAR' | 'APZ' | 'ZF' | 'ARR' | 'RfZ' | 'VF';
 
 export const CABINET_FIELD_LABELS: Record<CabinetFieldType, string> = {
@@ -133,6 +188,7 @@ export interface SymbolDefinition {
   fieldConfig: SymbolFieldConfig;
   isDistributor: boolean;
   requiredElectricalProperties: ElectricalPropertyType[];
+  protectionProfile: ProtectionProfile;
   cabinetMapping: CabinetMappingInfo;
 }
 
@@ -144,7 +200,9 @@ export interface PlacedSymbol {
   y: number;
   rotation: number;
   attribute: Attribute;
-  stromkreisId: string | null;
+  verteilerId: string | null;
+  protectionOverrides?: ProtectionRequirement[];
+  circuitGroupOverride?: string | null;
   knx: KnxEigenschaften;
   artikel: ArtikelPosition[];
 }

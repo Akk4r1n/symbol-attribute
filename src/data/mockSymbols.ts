@@ -1,4 +1,4 @@
-import type { SymbolDefinition, SymbolFieldConfig, SymbolCategory, ElectricalPropertyType, CabinetMappingInfo } from '../types';
+import type { SymbolDefinition, SymbolFieldConfig, SymbolCategory, ElectricalPropertyType, CabinetMappingInfo, ProtectionProfile } from '../types';
 
 const s = (category: string, name: string) =>
   `/symbols/simple-${category}-${name}.svg`;
@@ -18,7 +18,7 @@ const FC: Record<SymbolCategory, SymbolFieldConfig> = {
   others:      { attribute: { farbe: 'optional', hoehe: 'optional', kabeltyp: 'required' }, stromkreis: 'optional', knx: 'optional' },
 };
 
-type RawSymbol = Omit<SymbolDefinition, 'isDistributor' | 'requiredElectricalProperties' | 'cabinetMapping'>;
+type RawSymbol = Omit<SymbolDefinition, 'isDistributor' | 'requiredElectricalProperties' | 'protectionProfile' | 'cabinetMapping'>;
 
 const CATEGORY_ELECTRICAL_REQUIREMENTS: Record<SymbolCategory, ElectricalPropertyType[]> = {
   socket:      ['mcb', 'rcd'],
@@ -69,6 +69,140 @@ const SYMBOL_CABINET_OVERRIDES: Record<string, CabinetMappingInfo> = {
   charging_station: { targetField: 'VF', elementTypes: ['mcb', 'rcbo', 'afdd', 'rcd_type_b'], description: 'Wallbox: RCBO + AFDD + RCD Typ B im VF' },
   pv_inverter: { targetField: 'VF', elementTypes: ['mcb', 'rcd_type_b', 'afdd'], description: 'PV: MCB + RCD Typ B + AFDD im VF' },
   battery_storage: { targetField: 'VF', elementTypes: ['mcb', 'rcd_type_b', 'afdd'], description: 'Speicher: MCB + RCD Typ B + AFDD im VF' },
+};
+
+const NO_PROTECTION: ProtectionProfile = { requirements: [], dedicatedCircuit: false, groupingHint: 'special' };
+
+const CATEGORY_PROTECTION_PROFILES: Record<SymbolCategory, ProtectionProfile> = {
+  socket: {
+    requirements: [
+      { role: 'mcb', ratedCurrent: 16, characteristic: 'B', poles: 1 },
+      { role: 'rcd', ratedCurrent: 40, faultCurrent: 30, rcdType: 'A', poles: 2 },
+    ],
+    dedicatedCircuit: false,
+    groupingHint: 'socket',
+  },
+  switch: {
+    requirements: [
+      { role: 'mcb', ratedCurrent: 10, characteristic: 'B', poles: 1 },
+      { role: 'rcd', ratedCurrent: 40, faultCurrent: 30, rcdType: 'A', poles: 2 },
+    ],
+    dedicatedCircuit: false,
+    groupingHint: 'light',
+  },
+  light: {
+    requirements: [
+      { role: 'mcb', ratedCurrent: 10, characteristic: 'B', poles: 1 },
+      { role: 'rcd', ratedCurrent: 40, faultCurrent: 30, rcdType: 'A', poles: 2 },
+    ],
+    dedicatedCircuit: false,
+    groupingHint: 'light',
+  },
+  sensor:      NO_PROTECTION,
+  safety:      NO_PROTECTION,
+  smarthome:   NO_PROTECTION,
+  network:     NO_PROTECTION,
+  homedevice: {
+    requirements: [
+      { role: 'mcb', ratedCurrent: 16, characteristic: 'B', poles: 1 },
+      { role: 'rcd', ratedCurrent: 40, faultCurrent: 30, rcdType: 'A', poles: 2 },
+    ],
+    dedicatedCircuit: true,
+    groupingHint: 'dedicated',
+  },
+  distributor: NO_PROTECTION,
+  grounding:   NO_PROTECTION,
+  intercom:    NO_PROTECTION,
+  others: {
+    requirements: [
+      { role: 'mcb', ratedCurrent: 16, characteristic: 'B', poles: 1 },
+      { role: 'rcd', ratedCurrent: 40, faultCurrent: 30, rcdType: 'A', poles: 2 },
+    ],
+    dedicatedCircuit: false,
+    groupingHint: 'socket',
+  },
+};
+
+const SYMBOL_PROTECTION_OVERRIDES: Record<string, ProtectionProfile> = {
+  high_voltage_socket: {
+    requirements: [
+      { role: 'mcb', ratedCurrent: 32, characteristic: 'C', poles: 3 },
+      { role: 'rcd', ratedCurrent: 40, faultCurrent: 30, rcdType: 'B', poles: 4 },
+    ],
+    dedicatedCircuit: true,
+    groupingHint: 'dedicated',
+  },
+  charging_station: {
+    requirements: [
+      { role: 'rcbo', ratedCurrent: 16, characteristic: 'C', faultCurrent: 30, poles: 2 },
+      { role: 'afdd', ratedCurrent: 16, characteristic: 'C', poles: 2 },
+      { role: 'rcd_type_b', ratedCurrent: 40, faultCurrent: 30, rcdType: 'B', poles: 2 },
+    ],
+    dedicatedCircuit: true,
+    groupingHint: 'dedicated',
+  },
+  stove: {
+    requirements: [
+      { role: 'mcb', ratedCurrent: 25, characteristic: 'C', poles: 3 },
+      { role: 'rcd', ratedCurrent: 40, faultCurrent: 30, rcdType: 'A', poles: 4 },
+    ],
+    dedicatedCircuit: true,
+    groupingHint: 'dedicated',
+  },
+  oven: {
+    requirements: [
+      { role: 'mcb', ratedCurrent: 16, characteristic: 'B', poles: 1 },
+      { role: 'rcd', ratedCurrent: 40, faultCurrent: 30, rcdType: 'A', poles: 2 },
+    ],
+    dedicatedCircuit: true,
+    groupingHint: 'dedicated',
+  },
+  instant_water_heater: {
+    requirements: [
+      { role: 'rcbo', ratedCurrent: 32, characteristic: 'C', faultCurrent: 30, poles: 3 },
+    ],
+    dedicatedCircuit: true,
+    groupingHint: 'dedicated',
+  },
+  washing_machine: {
+    requirements: [
+      { role: 'rcbo', ratedCurrent: 16, characteristic: 'B', faultCurrent: 30, poles: 2 },
+    ],
+    dedicatedCircuit: true,
+    groupingHint: 'dedicated',
+  },
+  dishwasher: {
+    requirements: [
+      { role: 'rcbo', ratedCurrent: 16, characteristic: 'B', faultCurrent: 30, poles: 2 },
+    ],
+    dedicatedCircuit: true,
+    groupingHint: 'dedicated',
+  },
+  air_conditioning: {
+    requirements: [
+      { role: 'mcb', ratedCurrent: 16, characteristic: 'C', poles: 1 },
+      { role: 'rcd', ratedCurrent: 40, faultCurrent: 30, rcdType: 'A', poles: 2 },
+      { role: 'afdd', ratedCurrent: 16, characteristic: 'C', poles: 1 },
+    ],
+    dedicatedCircuit: true,
+    groupingHint: 'dedicated',
+  },
+  general_connection_32A: {
+    requirements: [
+      { role: 'mcb', ratedCurrent: 32, characteristic: 'C', poles: 3 },
+      { role: 'rcd', ratedCurrent: 40, faultCurrent: 30, rcdType: 'A', poles: 4 },
+    ],
+    dedicatedCircuit: true,
+    groupingHint: 'dedicated',
+  },
+  motor: {
+    requirements: [
+      { role: 'mcb', ratedCurrent: 16, characteristic: 'C', poles: 3 },
+      { role: 'rcd', ratedCurrent: 40, faultCurrent: 30, rcdType: 'A', poles: 4 },
+    ],
+    dedicatedCircuit: true,
+    groupingHint: 'dedicated',
+  },
 };
 
 const DISTRIBUTOR_KEYS = new Set(['house_connection', 'meter_cabinet', 'sub_distributor', 'junction_box', 'heating_circuit_distributor']);
@@ -707,9 +841,13 @@ const rawCatalog: RawSymbol[] = [
     ], fieldConfig: FC.others },
 ];
 
-export const symbolCatalog: SymbolDefinition[] = rawCatalog.map((sym) => ({
-  ...sym,
-  isDistributor: sym.category === 'distributor' || DISTRIBUTOR_KEYS.has(sym.key),
-  requiredElectricalProperties: SYMBOL_ELECTRICAL_OVERRIDES[sym.key] ?? CATEGORY_ELECTRICAL_REQUIREMENTS[sym.category],
-  cabinetMapping: SYMBOL_CABINET_OVERRIDES[sym.key] ?? CATEGORY_CABINET_MAPPING[sym.category],
-}));
+export const symbolCatalog: SymbolDefinition[] = rawCatalog.map((sym) => {
+  const profile = SYMBOL_PROTECTION_OVERRIDES[sym.key] ?? CATEGORY_PROTECTION_PROFILES[sym.category];
+  return {
+    ...sym,
+    isDistributor: sym.category === 'distributor' || DISTRIBUTOR_KEYS.has(sym.key),
+    requiredElectricalProperties: SYMBOL_ELECTRICAL_OVERRIDES[sym.key] ?? CATEGORY_ELECTRICAL_REQUIREMENTS[sym.category],
+    protectionProfile: profile,
+    cabinetMapping: SYMBOL_CABINET_OVERRIDES[sym.key] ?? CATEGORY_CABINET_MAPPING[sym.category],
+  };
+});

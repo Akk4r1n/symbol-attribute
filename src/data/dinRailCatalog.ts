@@ -88,6 +88,98 @@ export const dinRailCatalog: DinRailDevice[] = [
   // ===== Trennschalter (Disconnect) =====
   { id: 'disconnect-load',  category: 'disconnect', label: 'Lasttrennschalter',          teWidth: 3, poles: 3, svgFile: 'last-trennschalter.svg' },
   { id: 'disconnect-fused', category: 'disconnect', label: 'Sicherungs-Lasttrennschalter', teWidth: 3, poles: 3, svgFile: 'sicherungs-last-trennschalter.svg' },
+
+  // ===== SLS (Selektiver Leitungsschutzschalter / Zaehlervorsicherung) =====
+  { id: 'sls-35a-1p', category: 'sls', label: 'SLS 35A 1-polig',  teWidth: 1.5, poles: 1, svgFile: 'ls-sicherung.svg', ratedCurrent: 35 },
+  { id: 'sls-50a-1p', category: 'sls', label: 'SLS 50A 1-polig',  teWidth: 1.5, poles: 1, svgFile: 'ls-sicherung.svg', ratedCurrent: 50 },
+  { id: 'sls-63a-1p', category: 'sls', label: 'SLS 63A 1-polig',  teWidth: 1.5, poles: 1, svgFile: 'ls-sicherung.svg', ratedCurrent: 63 },
+  { id: 'sls-35a-3p', category: 'sls', label: 'SLS 35A 3-polig',  teWidth: 4.5, poles: 3, svgFile: 'taster-schmelz-3pol.svg', ratedCurrent: 35 },
+  { id: 'sls-50a-3p', category: 'sls', label: 'SLS 50A 3-polig',  teWidth: 4.5, poles: 3, svgFile: 'taster-schmelz-3pol.svg', ratedCurrent: 50 },
+  { id: 'sls-63a-3p', category: 'sls', label: 'SLS 63A 3-polig',  teWidth: 4.5, poles: 3, svgFile: 'taster-schmelz-3pol.svg', ratedCurrent: 63 },
+  { id: 'sls-63a-4p', category: 'sls', label: 'SLS 63A 3P+N',     teWidth: 6,   poles: 4, svgFile: 'taster-schmelz-4pol.svg', ratedCurrent: 63 },
+
+  // ===== Hauptschalter =====
+  { id: 'main-switch-3p-40a', category: 'main_switch', label: 'Hauptschalter 40A 3-polig', teWidth: 3, poles: 3, svgFile: 'lastumschalter.svg', ratedCurrent: 40 },
+  { id: 'main-switch-3p-63a', category: 'main_switch', label: 'Hauptschalter 63A 3-polig', teWidth: 3, poles: 3, svgFile: 'lastumschalter.svg', ratedCurrent: 63 },
+  { id: 'main-switch-4p-40a', category: 'main_switch', label: 'Hauptschalter 40A 3P+N',    teWidth: 4, poles: 4, svgFile: 'last-umschalter.svg', ratedCurrent: 40 },
+  { id: 'main-switch-4p-63a', category: 'main_switch', label: 'Hauptschalter 63A 3P+N',    teWidth: 4, poles: 4, svgFile: 'last-umschalter.svg', ratedCurrent: 63 },
+
+  // ===== Zusaetzliche Schuetze (mit Oeffner) =====
+  { id: 'contactor-oe-1p', category: 'contactor', label: 'Schütz (Öffner) 1-polig', teWidth: 1, poles: 1, svgFile: 'schuetz-oe-1pol.svg' },
+  { id: 'contactor-oe-2p', category: 'contactor', label: 'Schütz (Öffner) 2-polig', teWidth: 2, poles: 2, svgFile: 'schuetz-oe-2pol.svg' },
+  { id: 'contactor-oe-3p', category: 'contactor', label: 'Schütz (Öffner) 3-polig', teWidth: 3, poles: 3, svgFile: 'schuetz-oe-3pol.svg' },
+  { id: 'contactor-oe-4p', category: 'contactor', label: 'Schütz (Öffner) 4-polig', teWidth: 4, poles: 4, svgFile: 'schuetz-oe-4pol.svg' },
+  { id: 'contactor-coil',  category: 'contactor', label: 'Schützspule',              teWidth: 1, poles: 1, svgFile: 'schuetz-spule.svg' },
+
+  // ===== Zusaetzliche Ueberspannungsschutz-Varianten =====
+  { id: 'spd-3p',     category: 'spd', label: 'Überspannungsschutz 3P',       teWidth: 3, poles: 3, svgFile: 'ueberspannung-3pol.svg' },
+  { id: 'spd-4p-3+1', category: 'spd', label: 'Überspannungsschutz 3P+N 3+1', teWidth: 4, poles: 4, svgFile: 'ueberspannung-4pol-3+1.svg' },
+
+  // ===== Zusaetzliche Zaehler =====
+  { id: 'meter-transformer-3p',     category: 'meter', label: 'Wandlerzähler 3P',          teWidth: 6, poles: 3, svgFile: 'zaehler-wandler-3ph.svg' },
+  { id: 'meter-transformer-3p-bus', category: 'meter', label: 'Wandlerzähler 3P + Bus',     teWidth: 6, poles: 3, svgFile: 'zaehler-wandler-3ph-bus.svg' },
+  { id: 'meter-transformer',        category: 'meter', label: 'Wandlerzähler',              teWidth: 4, poles: 2, svgFile: 'wandler-zaehler.svg' },
+
+  // ===== Relais / Schaltaktoren =====
+  { id: 'relay-dimmer',         category: 'relay', label: 'Dimmaktor',              teWidth: 2, poles: 1, svgFile: 'relais-spule-dimmer.svg' },
+  { id: 'relay-brightness',     category: 'relay', label: 'Helligkeitsaktor',       teWidth: 2, poles: 1, svgFile: 'relais-spule-helligkeit.svg' },
+  { id: 'relay-monostable',     category: 'relay', label: 'Relais monostabil',      teWidth: 1, poles: 1, svgFile: 'relais-spule-monostabil.svg' },
+  { id: 'relay-voltage',        category: 'relay', label: 'Spannungsmessrelais',    teWidth: 1, poles: 1, svgFile: 'relais-spule-spannungsmess.svg' },
+  { id: 'relay-impulse',        category: 'relay', label: 'Stromstossschalter',     teWidth: 1, poles: 1, svgFile: 'relais-spule-stromstoss.svg' },
+  { id: 'relay-staircase',      category: 'relay', label: 'Treppenlichtautomat',    teWidth: 1, poles: 1, svgFile: 'relais-spule-treppenl.svg' },
+  { id: 'relay-surge',          category: 'relay', label: 'Überspannungsrelais',    teWidth: 1, poles: 1, svgFile: 'relais-spule-ueberspannung.svg' },
+  { id: 'relay-timer',          category: 'relay', label: 'Zeitschaltuhr',          teWidth: 2, poles: 1, svgFile: 'relais-spule-zeitschalt.svg' },
+  { id: 'relay-switch-dimm',    category: 'relay', label: 'Schalt-/Dimmaktor',      teWidth: 2, poles: 1, svgFile: 'switch-dimm.svg' },
+
+  // ===== Netzteil / Spannungsversorgung =====
+  { id: 'psu-general',   category: 'power_supply', label: 'Netzteil',               teWidth: 4, poles: 2, svgFile: 'netzteil.svg' },
+  { id: 'psu-3p-pe',     category: 'power_supply', label: 'Netzteil 3P+PE',         teWidth: 6, poles: 4, svgFile: 'netzteil-lllpe.svg' },
+  { id: 'psu-ln-pe',     category: 'power_supply', label: 'Netzteil L+N+PE',        teWidth: 4, poles: 2, svgFile: 'netzteil-lnpe.svg' },
+  { id: 'psu-bus',        category: 'power_supply', label: 'Spannungsversorgung Bus', teWidth: 4, poles: 2, svgFile: 'spannungsversorgung.svg' },
+
+  // ===== TKS / Sprechanlagen DIN-Rail =====
+  { id: 'tks-ip-interface', category: 'intercom_system', label: 'TKS IP-Datenschnittstelle',      teWidth: 4, poles: 1, svgFile: 'tks-ip-daten-schnittstelle.svg' },
+  { id: 'tks-ip-gateway',   category: 'intercom_system', label: 'TKS IP-Gateway',                  teWidth: 4, poles: 1, svgFile: 'tks-ip-gateway.svg' },
+  { id: 'tks-cam-gateway',  category: 'intercom_system', label: 'TKS Kamera-Gateway',              teWidth: 4, poles: 1, svgFile: 'tks-kamera-gateway.svg' },
+  { id: 'tks-repeater',     category: 'intercom_system', label: 'TKS Repeater',                    teWidth: 2, poles: 1, svgFile: 'tks-repeater.svg' },
+  { id: 'tks-repeater-multi', category: 'intercom_system', label: 'TKS Repeater Mehrgesprächs',    teWidth: 4, poles: 1, svgFile: 'tks-repeater-mehrgespraechs-modus.svg' },
+  { id: 'tks-actuator',     category: 'intercom_system', label: 'TKS Schaltaktor',                 teWidth: 2, poles: 1, svgFile: 'tks-schaltaktor.svg' },
+  { id: 'tks-button-2ch',   category: 'intercom_system', label: 'TKS Tasterschnittstelle 2-fach',  teWidth: 2, poles: 1, svgFile: 'tks-taster-schnittstelle-2fach.svg' },
+  { id: 'intercom-audio',   category: 'intercom_system', label: 'Wohnungsstation Audio AP',         teWidth: 0, poles: 1, svgFile: 'wohnungsstation-audio-ap.svg' },
+  { id: 'intercom-video-7', category: 'intercom_system', label: 'Wohnungsstation Video 7" AP',      teWidth: 0, poles: 1, svgFile: 'wohnungsstation-video-ap-7.svg' },
+  { id: 'intercom-video-plus', category: 'intercom_system', label: 'Wohnungsstation Video+ AP',     teWidth: 0, poles: 1, svgFile: 'wohnungsstation-video-ap-plus.svg' },
+  { id: 'intercom-audio-ctrl', category: 'intercom_system', label: 'Steuergerät Audio',             teWidth: 4, poles: 1, svgFile: 'steuergeraet-audio.svg' },
+  { id: 'intercom-video-ctrl', category: 'intercom_system', label: 'Steuergerät Video',             teWidth: 4, poles: 1, svgFile: 'steuergeraet-video.svg' },
+  { id: 'video-multiplexer', category: 'intercom_system', label: 'Video-Multiplexer',              teWidth: 4, poles: 1, svgFile: 'video-multiplexer.svg' },
+  { id: 'video-amplifier',   category: 'intercom_system', label: 'Video-Verstärker',               teWidth: 2, poles: 1, svgFile: 'video-verstaerker.svg' },
+  { id: 'video-distributor', category: 'intercom_system', label: 'Video-Verteiler',                teWidth: 4, poles: 1, svgFile: 'video-verteiler.svg' },
+
+  // ===== Energiemanagement =====
+  { id: 'energy-pv',         category: 'energy', label: 'PV-Modul',           teWidth: 0, poles: 2, svgFile: 'pv-modul.svg' },
+  { id: 'energy-inverter',   category: 'energy', label: 'Wechselrichter',     teWidth: 0, poles: 3, svgFile: 'wechselrichter.svg' },
+  { id: 'energy-battery',    category: 'energy', label: 'Batterie',           teWidth: 0, poles: 2, svgFile: 'batterie.svg' },
+  { id: 'energy-battery-sys', category: 'energy', label: 'Batteriesystem',    teWidth: 0, poles: 2, svgFile: 'batteriesystem.svg' },
+  { id: 'energy-charger',    category: 'energy', label: 'Laderegler',         teWidth: 4, poles: 2, svgFile: 'laderegler.svg' },
+  { id: 'energy-generator',  category: 'energy', label: 'Generator',          teWidth: 0, poles: 3, svgFile: 'generator.svg' },
+  { id: 'energy-ev',         category: 'energy', label: 'Elektrofahrzeug',    teWidth: 0, poles: 2, svgFile: 'elektrofahrzeug.svg' },
+  { id: 'energy-feed-in',    category: 'energy', label: 'Energiebezug',       teWidth: 0, poles: 3, svgFile: 'energie-bezug.svg' },
+
+  // ===== Hilfsgeraete / Kontakte =====
+  { id: 'contact-no',        category: 'contact', label: 'Schließer (NO)',           teWidth: 0.5, poles: 1, svgFile: 'schliesser.svg' },
+  { id: 'contact-nc',        category: 'contact', label: 'Öffner (NC)',              teWidth: 0.5, poles: 1, svgFile: 'oeffner.svg' },
+  { id: 'contact-changeover', category: 'contact', label: 'Umschalter',              teWidth: 1,   poles: 1, svgFile: 'umschalter.svg' },
+  { id: 'contact-changeover2', category: 'contact', label: 'Wechsler',              teWidth: 1,   poles: 1, svgFile: 'wechsler.svg' },
+  { id: 'contact-aux',       category: 'contact', label: 'Hilfskontakt',             teWidth: 0.5, poles: 1, svgFile: 'hilfskontakt-xpol.svg' },
+  { id: 'contact-button-1p', category: 'contact', label: 'Taster 1-polig',           teWidth: 1,   poles: 1, svgFile: 'taster-1pol.svg' },
+  { id: 'contact-button-2p', category: 'contact', label: 'Taster 2-polig',           teWidth: 2,   poles: 2, svgFile: 'taster-2pol.svg' },
+  { id: 'contact-button-3p', category: 'contact', label: 'Taster 3-polig',           teWidth: 3,   poles: 3, svgFile: 'taster-3pol.svg' },
+  { id: 'contact-button-4p', category: 'contact', label: 'Taster 4-polig',           teWidth: 4,   poles: 4, svgFile: 'taster-4pol.svg' },
+  { id: 'contact-signal',    category: 'contact', label: 'Signalleuchte',            teWidth: 1,   poles: 1, svgFile: 'signal-leuchte.svg' },
+  { id: 'contact-reg-socket', category: 'contact', label: 'REG-Steckdose',           teWidth: 1,   poles: 2, svgFile: 'reg-steckdose.svg' },
+  { id: 'contact-reg-socket-5p', category: 'contact', label: 'REG-Steckdose 5-polig', teWidth: 3, poles: 5, svgFile: 'reg-steckdose-5pol.svg' },
+
+  // ===== Zusaetzliche MCB-Varianten =====
+  { id: 'mcb-3x1p',  category: 'mcb', label: 'LSS 3x 1-polig (Sammelschiene)', teWidth: 3, poles: 3, svgFile: 'ls-3x1pol.svg' },
 ];
 
 // --- Lookup helpers ---

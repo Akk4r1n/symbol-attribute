@@ -13,7 +13,8 @@
       "Bash(grep:*)",
       "Bash(powershell -NoProfile -File NUL -Command:*)",
       "Bash(powershell:*)",
-      "Bash(npx eslint:*)"
+      "Bash(npx eslint:*)",
+      "Bash(node -e:*)"
     ]
   }
 }

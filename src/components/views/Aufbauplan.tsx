@@ -1,7 +1,8 @@
 import { useMemo, useRef, useEffect, useState } from 'react';
 import { Stage, Layer, Rect, Text, Line, Group } from 'react-konva';
-import { useStromkreise, useAllSymbols } from '../../store/useAppStore';
+import { useDerivedCircuits } from '../../store/useAppStore';
 import { findDevice, DIN_RAIL_TE_PER_ROW } from '../../data/dinRailCatalog';
+import { groupBySharedRcd, circuitDevicesWithoutRcd } from '../../logic/rcdGrouping';
 
 const TE_PX = 30;
 const ROW_H = 50;
@@ -15,13 +16,13 @@ interface PlacedDevice {
   x: number;
   row: number;
   color: string;
+  isShared: boolean;
 }
 
 export function Aufbauplan() {
   const containerRef = useRef<HTMLDivElement>(null);
   const [dims, setDims] = useState({ width: 800, height: 600 });
-  const stromkreise = useStromkreise();
-  const allSymbols = useAllSymbols();
+  const derivedCircuits = useDerivedCircuits();
 
   useEffect(() => {
     const el = containerRef.current;
@@ -34,54 +35,77 @@ export function Aufbauplan() {
     return () => obs.disconnect();
   }, []);
 
-  const verteilerGroups = useMemo(() => {
-    const groups = new Map<string, typeof stromkreise>();
-    for (const sk of stromkreise) {
-      const arr = groups.get(sk.verteilerId) ?? [];
-      arr.push(sk);
-      groups.set(sk.verteilerId, arr);
-    }
-    return groups;
-  }, [stromkreise]);
-
   const verteilerLayouts = useMemo(() => {
-    const layouts: { name: string; devices: PlacedDevice[]; consumerCounts: Map<string, number> }[] = [];
+    // Group circuits by verteilerId
+    const byVerteiler = new Map<string, typeof derivedCircuits>();
+    for (const c of derivedCircuits) {
+      const arr = byVerteiler.get(c.verteilerId) ?? [];
+      arr.push(c);
+      byVerteiler.set(c.verteilerId, arr);
+    }
 
-    for (const [name, sks] of verteilerGroups) {
-      const seen = new Set<string>();
+    const rcdGroups = groupBySharedRcd(derivedCircuits);
+    const circuitToRcdGroup = new Map<string, typeof rcdGroups[0]>();
+    for (const g of rcdGroups) {
+      for (const cid of g.circuitIds) circuitToRcdGroup.set(cid, g);
+    }
+
+    const layouts: { name: string; devices: PlacedDevice[] }[] = [];
+
+    for (const [name, circuits] of byVerteiler) {
       const devices: PlacedDevice[] = [];
-      const consumerCounts = new Map<string, number>();
+      const placedRcdGroupIds = new Set<string>();
 
-      for (const sk of sks) {
-        const count = allSymbols.filter(s => s.stromkreisId === sk.id).length;
-        consumerCounts.set(sk.id, count);
-      }
+      for (const circuit of circuits) {
+        const rcdGroup = circuitToRcdGroup.get(circuit.id);
 
-      for (const sk of sks) {
-        for (const d of sk.devices) {
-          const key = `${d.role}:${d.deviceId}`;
-          if (seen.has(key)) continue;
-          seen.add(key);
-          const device = findDevice(d.deviceId);
-          if (!device) continue;
+        // Shared RCD: place once per group
+        if (rcdGroup && !placedRcdGroupIds.has(rcdGroup.id) && rcdGroup.sharedRcdDevice) {
+          placedRcdGroupIds.add(rcdGroup.id);
+          const dev = findDevice(rcdGroup.sharedRcdDevice.deviceId);
+          if (dev) {
+            devices.push({
+              deviceId: dev.id,
+              label: `${dev.label} (${rcdGroup.circuitIds.length} SK)`,
+              teWidth: dev.teWidth,
+              role: rcdGroup.sharedRcdDevice.role,
+              x: 0,
+              row: 0,
+              color: '#fef3c7',
+              isShared: true,
+            });
+          }
+        }
 
-          const color = d.role === 'rcd' || d.role === 'rcd_type_b' ? '#fef3c7'
+        // Per-circuit devices (MCB, AFDD, etc.)
+        const perCircuit = rcdGroup
+          ? circuitDevicesWithoutRcd(circuit)
+          : circuit.resolvedDevices;
+
+        for (const d of perCircuit) {
+          const dev = findDevice(d.deviceId);
+          if (!dev) continue;
+
+          const isRcd = d.role === 'rcd' || d.role === 'rcd_type_b';
+          const color = isRcd ? '#fef3c7'
             : d.role === 'afdd' ? '#fce7f3'
             : d.role === 'rcbo' ? '#e0f2fe'
             : '#dbeafe';
 
           devices.push({
-            deviceId: d.deviceId,
-            label: device.label,
-            teWidth: device.teWidth,
+            deviceId: dev.id,
+            label: dev.label,
+            teWidth: dev.teWidth,
             role: d.role,
             x: 0,
             row: 0,
             color,
+            isShared: false,
           });
         }
       }
 
+      // Layout on DIN rail rows
       let totalTE = 0;
       let row = 0;
       for (const d of devices) {
@@ -94,10 +118,10 @@ export function Aufbauplan() {
         totalTE += d.teWidth;
       }
 
-      layouts.push({ name, devices, consumerCounts });
+      layouts.push({ name, devices });
     }
     return layouts;
-  }, [verteilerGroups, allSymbols]);
+  }, [derivedCircuits]);
 
   const LEFT = 40;
   const TOP = 60;
@@ -117,7 +141,7 @@ export function Aufbauplan() {
     <div ref={containerRef} className="w-full h-full overflow-auto bg-white">
       {verteilerLayouts.length === 0 ? (
         <div className="flex items-center justify-center h-full text-gray-400">
-          Keine Stromkreise definiert.
+          Keine Stromkreise abgeleitet.
         </div>
       ) : (
         <Stage width={totalWidth} height={totalHeight}>
@@ -149,7 +173,13 @@ export function Aufbauplan() {
                     const w = d.teWidth * TE_PX - 4;
                     return (
                       <Group key={di}>
-                        <Rect x={dx} y={dy} width={w} height={28} fill={d.color} stroke="#6b7280" strokeWidth={1} cornerRadius={2} />
+                        <Rect
+                          x={dx} y={dy} width={w} height={28}
+                          fill={d.color}
+                          stroke={d.isShared ? '#92400e' : '#6b7280'}
+                          strokeWidth={d.isShared ? 2 : 1}
+                          cornerRadius={2}
+                        />
                         <Text text={d.label} x={dx + 2} y={dy + 4} fontSize={8} fill="#1f2937" width={w - 4} />
                         <Text text={`${d.teWidth} TE`} x={dx + 2} y={dy + 16} fontSize={7} fill="#6b7280" width={w - 4} />
                       </Group>

@@ -1,17 +1,27 @@
 import { useMemo, useRef, useEffect, useState } from 'react';
 import { Stage, Layer, Rect, Text, Line, Group } from 'react-konva';
-import { useDerivedCircuits, useAllSymbols, useAppStore } from '../../store/useAppStore';
+import { useDerivedCircuits, useAllSymbols, useAppStore, useNetzKonfigurationen } from '../../store/useAppStore';
 import { symbolCatalog } from '../../data/mockSymbols';
-import { findDevice } from '../../data/dinRailCatalog';
+import { findDevice } from '../../data/cabinetCatalog';
 import { groupBySharedRcd, circuitDevicesWithoutRcd } from '../../logic/rcdGrouping';
+import { findNetzForVerteiler, resolveUpstreamDevices } from '../../logic/netzUpstream';
 import type { RcdGroup } from '../../logic/rcdGrouping';
-import type { DerivedCircuit, StromkreisDevice, DinRailDevice } from '../../types';
+import type { DerivedCircuit, StromkreisDevice, CabinetDevice, NetzKonfiguration } from '../../types';
+import type { UpstreamDevice } from '../../logic/netzUpstream';
 
 interface ColumnData {
   circuit: DerivedCircuit;
   rcdGroup: RcdGroup | null;
-  devices: (StromkreisDevice & { device: DinRailDevice | undefined })[];
+  devices: (StromkreisDevice & { device: CabinetDevice | undefined })[];
   symbols: { key: string; label: string; raum: string }[];
+}
+
+interface VerteilerSpan {
+  verteilerId: string;
+  startIdx: number;
+  endIdx: number;
+  netz: NetzKonfiguration | undefined;
+  upstream: UpstreamDevice[];
 }
 
 export function Stromlaufplan() {
@@ -20,6 +30,7 @@ export function Stromlaufplan() {
   const derivedCircuits = useDerivedCircuits();
   const allSymbols = useAllSymbols();
   const gebaeude = useAppStore((s) => s.gebaeude);
+  const netzKonfigurationen = useNetzKonfigurationen();
 
   useEffect(() => {
     const el = containerRef.current;
@@ -32,7 +43,7 @@ export function Stromlaufplan() {
     return () => obs.disconnect();
   }, []);
 
-  const { columns, rcdGroupSpans } = useMemo(() => {
+  const { columns, rcdGroupSpans, verteilerSpans } = useMemo(() => {
     const getRaumName = (raumId: string) => {
       for (const sw of gebaeude.stockwerke) {
         const r = sw.raeume.find((r) => r.id === raumId);
@@ -74,7 +85,11 @@ export function Stromlaufplan() {
     const cols: ColumnData[] = ordered.map(({ circuit, rcdGroup }) => {
       const symbols = circuit.symbolIds
         .map((sid) => allSymbols.find((s) => s.id === sid))
-        .filter(Boolean)
+        .filter((s) => {
+          if (!s) return false;
+          const def = symbolCatalog.find((d) => d.key === s.symbolKey);
+          return def?.isVerbraucher ?? false;
+        })
         .map((s) => {
           const def = symbolCatalog.find((d) => d.key === s!.symbolKey);
           return { key: s!.symbolKey, label: def?.label ?? s!.symbolKey, raum: getRaumName(s!.raumId) };
@@ -90,11 +105,11 @@ export function Stromlaufplan() {
 
     // Compute RCD group column spans (start/end indices)
     const spans: { group: RcdGroup; startIdx: number; endIdx: number }[] = [];
-    const seen = new Set<string>();
+    const seenRcd = new Set<string>();
     for (let i = 0; i < cols.length; i++) {
       const g = cols[i].rcdGroup;
-      if (g && !seen.has(g.id)) {
-        seen.add(g.id);
+      if (g && !seenRcd.has(g.id)) {
+        seenRcd.add(g.id);
         let end = i;
         for (let j = i + 1; j < cols.length; j++) {
           if (cols[j].rcdGroup?.id === g.id) end = j;
@@ -104,13 +119,42 @@ export function Stromlaufplan() {
       }
     }
 
-    return { columns: cols, rcdGroupSpans: spans };
-  }, [derivedCircuits, allSymbols, gebaeude]);
+    // Compute verteiler spans for upstream chain rendering
+    const vSpans: VerteilerSpan[] = [];
+    const seenVerteiler = new Set<string>();
+    for (let i = 0; i < cols.length; i++) {
+      const vid = cols[i].circuit.verteilerId;
+      if (!seenVerteiler.has(vid)) {
+        seenVerteiler.add(vid);
+        let end = i;
+        for (let j = i + 1; j < cols.length; j++) {
+          if (cols[j].circuit.verteilerId === vid) end = j;
+          else break;
+        }
+        const netz = findNetzForVerteiler(netzKonfigurationen, vid);
+        vSpans.push({
+          verteilerId: vid,
+          startIdx: i,
+          endIdx: end,
+          netz,
+          upstream: netz ? resolveUpstreamDevices(netz) : [],
+        });
+      }
+    }
+
+    return { columns: cols, rcdGroupSpans: spans, verteilerSpans: vSpans };
+  }, [derivedCircuits, allSymbols, gebaeude, netzKonfigurationen]);
 
   const COL_W = 200;
   const ROW_H = 30;
-  const TOP = 80;
   const LEFT = 40;
+  const UPSTREAM_SLOT_H = 40;
+
+  // Compute upstream zone height (max across all verteiler groups)
+  const maxUpstreamCount = Math.max(0, ...verteilerSpans.map((s) => s.upstream.length));
+  const UPSTREAM_H = maxUpstreamCount * UPSTREAM_SLOT_H;
+
+  const TOP = 80 + UPSTREAM_H;
   const RCD_TIER_Y = TOP + 20;
   const hasRcdGroups = rcdGroupSpans.length > 0;
   const DEVICE_TIER_Y = hasRcdGroups ? TOP + 70 : TOP + 20;
@@ -132,6 +176,36 @@ export function Stromlaufplan() {
         <Stage width={totalW} height={totalH}>
           <Layer>
             <Text text="Stromlaufplan" x={LEFT} y={15} fontSize={18} fontStyle="bold" fill="#1f2937" />
+
+            {/* Upstream chain per verteiler group */}
+            {verteilerSpans.filter((s) => s.upstream.length > 0).map((span) => {
+              const cx = LEFT + ((span.startIdx + span.endIdx) / 2) * COL_W + COL_W / 2;
+
+              return (
+                <Group key={`upstream-${span.verteilerId}`}>
+                  {span.upstream.map((ud, ui) => {
+                    const y = 80 + ui * UPSTREAM_SLOT_H;
+                    const isEinspeisung = ud.slot === 'einspeisung';
+                    const isZaehler = ud.slot === 'zaehler';
+                    const color = isEinspeisung ? '#f0fdf4' : isZaehler ? '#e0e7ff' : '#d1fae5';
+                    const textColor = isEinspeisung ? '#166534' : isZaehler ? '#3730a3' : '#065f46';
+                    return (
+                      <Group key={ui}>
+                        {/* Connection line from previous device */}
+                        {ui > 0 && <Line points={[cx, y - 5, cx, y]} stroke="#374151" strokeWidth={2} />}
+                        <Rect x={cx - 55} y={y} width={110} height={28} fill={color} stroke={textColor} strokeWidth={1} cornerRadius={3} />
+                        <Text text={ud.label} x={cx - 53} y={y + 3} fontSize={8} fill={textColor} width={106} align="center" />
+                        <Text text={ud.sublabel} x={cx - 53} y={y + 15} fontSize={7} fill={textColor} width={106} align="center" />
+                        {/* Connection line to next device */}
+                        <Line points={[cx, y + 28, cx, y + UPSTREAM_SLOT_H - 5]} stroke="#374151" strokeWidth={2} />
+                      </Group>
+                    );
+                  })}
+                  {/* Final line from last upstream device to bus bar */}
+                  <Line points={[cx, 80 + span.upstream.length * UPSTREAM_SLOT_H - 5, cx, TOP]} stroke="#374151" strokeWidth={2} />
+                </Group>
+              );
+            })}
 
             {/* Main bus bar */}
             <Line points={[LEFT, TOP, LEFT + columns.length * COL_W, TOP]} stroke="#374151" strokeWidth={3} />

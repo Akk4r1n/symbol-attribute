@@ -23,7 +23,7 @@ Stueckliste und Bestellliste generieren automatisch die Material- und Kostenaufs
 Die Stueckliste ist ein **Output-Layer**: Sie konsumiert alle `PlacedSymbol.artikel` aus allen Raeumen. Jedes Mal wenn ein Symbol platziert oder entfernt wird, aktualisiert sich die Liste automatisch.
 
 ### Noch nicht implementiert
-- DIN-Rail-Geraete (MCB, RCD, ...) aus den abgeleiteten Stromkreisen fehlen noch in der Stueckliste
+- Schaltschrank-Geraete (MCB, RCD, ...) aus den abgeleiteten Stromkreisen fehlen noch in der Stueckliste
 - Export als CSV oder PDF
 
 ## Owned Files

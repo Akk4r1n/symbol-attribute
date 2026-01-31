@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { symbolCatalog } from '../../data/mockSymbols';
 import { propertyRegistry, PROPERTY_GROUP_LABELS } from '../../data/propertyRegistry';
-import { dinRailCatalog, findDevice } from '../../data/dinRailCatalog';
+import { cabinetCatalog, findDevice } from '../../data/cabinetCatalog';
 import { useAppStore, useDerivedCircuits, useAllSymbols } from '../../store/useAppStore';
 import {
   CATEGORY_LABELS,
@@ -9,22 +9,22 @@ import {
   CABINET_FIELD_LABELS,
   FEATURE_AREA_LABELS,
   GROUPING_HINT_LABELS,
-  DIN_RAIL_CATEGORY_LABELS,
+  CABINET_CATEGORY_LABELS,
   type SymbolCategory,
   type SymbolDefinition,
   type ElectricalPropertyType,
   type FieldRelevance,
   type FeatureArea,
-  type DinRailCategory,
+  type CabinetCategory,
   type DerivedCircuit,
 } from '../../types';
 
-type SubTab = 'durchgaengigkeit' | 'register' | 'dinrail' | 'stromkreise';
+type SubTab = 'durchgaengigkeit' | 'register' | 'cabinet' | 'stromkreise';
 
 const SUB_TABS: { key: SubTab; label: string }[] = [
   { key: 'durchgaengigkeit', label: 'Durchgaengigkeit' },
   { key: 'register', label: 'Eigenschafts-Register' },
-  { key: 'dinrail', label: 'DIN-Rail Geraete' },
+  { key: 'cabinet', label: 'Schaltschrank Geraete' },
   { key: 'stromkreise', label: 'Stromkreise' },
 ];
 
@@ -152,7 +152,7 @@ function EigenschaftenCard({ sym }: { sym: SymbolDefinition }) {
   const fields: { label: string; value: FieldRelevance }[] = [
     { label: 'Farbe', value: sym.fieldConfig.attribute.farbe },
     { label: 'Hoehe', value: sym.fieldConfig.attribute.hoehe },
-    { label: 'Kabeltyp', value: sym.fieldConfig.attribute.kabeltyp },
+    { label: 'Kabel', value: sym.fieldConfig.kabel },
     { label: 'Stromkreis', value: sym.fieldConfig.stromkreis },
     { label: 'KNX', value: sym.fieldConfig.knx },
   ];
@@ -332,7 +332,7 @@ function DurchgaengigkeitTable({ symbols }: { symbols: SymbolDefinition[] }) {
             const relevances: FieldRelevance[] = [
               sym.fieldConfig.attribute.farbe,
               sym.fieldConfig.attribute.hoehe,
-              sym.fieldConfig.attribute.kabeltyp,
+              sym.fieldConfig.kabel,
               sym.fieldConfig.stromkreis,
               sym.fieldConfig.knx,
             ];
@@ -408,12 +408,12 @@ function DurchgaengigkeitTable({ symbols }: { symbols: SymbolDefinition[] }) {
   );
 }
 
-function DinRailTable() {
+function CabinetTable() {
   const [search, setSearch] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState<DinRailCategory | 'all'>('all');
+  const [categoryFilter, setCategoryFilter] = useState<CabinetCategory | 'all'>('all');
 
   const filtered = useMemo(() => {
-    return dinRailCatalog.filter((d) => {
+    return cabinetCatalog.filter((d) => {
       if (categoryFilter !== 'all' && d.category !== categoryFilter) return false;
       if (search) {
         return d.label.toLowerCase().includes(search.toLowerCase());
@@ -422,7 +422,7 @@ function DinRailTable() {
     });
   }, [search, categoryFilter]);
 
-  const categories = Object.entries(DIN_RAIL_CATEGORY_LABELS) as [DinRailCategory, string][];
+  const categories = Object.entries(CABINET_CATEGORY_LABELS) as [CabinetCategory, string][];
 
   return (
     <div>
@@ -436,7 +436,7 @@ function DinRailTable() {
         />
         <select
           value={categoryFilter}
-          onChange={(e) => setCategoryFilter(e.target.value as DinRailCategory | 'all')}
+          onChange={(e) => setCategoryFilter(e.target.value as CabinetCategory | 'all')}
           className="text-sm border border-gray-300 rounded px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-400"
         >
           <option value="all">Alle Kategorien</option>
@@ -462,7 +462,7 @@ function DinRailTable() {
           {filtered.map((d) => (
             <tr key={d.id} className="border-b border-gray-100 hover:bg-gray-50">
               <td className="py-1.5 font-medium text-gray-800">{d.label}</td>
-              <td className="py-1.5 text-xs text-gray-500">{DIN_RAIL_CATEGORY_LABELS[d.category]}</td>
+              <td className="py-1.5 text-xs text-gray-500">{CABINET_CATEGORY_LABELS[d.category]}</td>
               <td className="py-1.5 text-center">{d.teWidth}</td>
               <td className="py-1.5 text-center">{d.poles}</td>
               <td className="py-1.5 text-center">{d.ratedCurrent ? `${d.ratedCurrent}A` : '\u2014'}</td>
@@ -723,7 +723,7 @@ export function Symboluebersicht() {
       <div className="overflow-x-auto">
         {activeTab === 'durchgaengigkeit' && <DurchgaengigkeitTable symbols={filtered} />}
         {activeTab === 'register' && <PropertyRegisterTable />}
-        {activeTab === 'dinrail' && <DinRailTable />}
+        {activeTab === 'cabinet' && <CabinetTable />}
         {activeTab === 'stromkreise' && <CircuitManager />}
       </div>
 

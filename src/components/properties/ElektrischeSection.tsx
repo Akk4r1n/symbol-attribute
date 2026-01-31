@@ -2,8 +2,9 @@ import { useState } from 'react';
 import type { PlacedSymbol, FieldRelevance, ProtectionRequirement, ElectricalPropertyType } from '../../types';
 import { ELECTRICAL_PROPERTY_LABELS } from '../../types';
 import { useAppStore, useDerivedCircuits, useAllSymbols } from '../../store/useAppStore';
+import { useShallow } from 'zustand/react/shallow';
 import { symbolCatalog } from '../../data/mockSymbols';
-import { findDevice } from '../../data/dinRailCatalog';
+import { findDevice } from '../../data/cabinetCatalog';
 
 export function ElektrischeSection({ symbol, relevance }: { symbol: PlacedSymbol; relevance: FieldRelevance }) {
   const setSymbolVerteiler = useAppStore((s) => s.setSymbolVerteiler);
@@ -16,6 +17,9 @@ export function ElektrischeSection({ symbol, relevance }: { symbol: PlacedSymbol
   const profileReqs = def?.protectionProfile.requirements ?? [];
   const effectiveReqs = symbol.protectionOverrides ?? profileReqs;
   const hasOverrides = !!symbol.protectionOverrides && symbol.protectionOverrides.length > 0;
+
+  // Store verteiler (first-class entities)
+  const storeVerteiler = useAppStore(useShallow((s) => s.verteiler));
 
   // Find distributors (placed symbols that are distributors)
   const distributors = allSymbols.filter((s) => {
@@ -41,6 +45,13 @@ export function ElektrischeSection({ symbol, relevance }: { symbol: PlacedSymbol
           className="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:border-blue-500"
         >
           <option value="">-- Standard (HV-EG) --</option>
+          {storeVerteiler
+            .filter((v) => v.id !== 'HV-EG')
+            .map((v) => (
+              <option key={v.id} value={v.id}>
+                {v.name}
+              </option>
+            ))}
           {distributors.map((d) => {
             const dDef = symbolCatalog.find((c) => c.key === d.symbolKey);
             return (

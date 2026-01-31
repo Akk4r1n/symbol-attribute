@@ -4,11 +4,21 @@ import { AttributeSection } from './AttributeSection';
 import { ElektrischeSection } from './ElektrischeSection';
 import { KnxSection } from './KnxSection';
 import { ArtikelSection } from './ArtikelSection';
+import { KabelPropertiesPanel, SymbolKabelInfo } from './KabelSection';
 
 export function PropertiesPanel() {
+  const selectedTarget = useAppStore((s) => s.selectedTarget);
   const symbol = useSelectedSymbol();
   const removeSymbol = useAppStore((s) => s.removeSymbol);
 
+  if (!selectedTarget) return null;
+
+  // Kabel selected -> show cable panel
+  if (selectedTarget.type === 'kabel') {
+    return <KabelPropertiesPanel />;
+  }
+
+  // Symbol selected
   if (!symbol) return null;
   const def = symbolCatalog.find((s) => s.key === symbol.symbolKey);
 
@@ -31,6 +41,7 @@ export function PropertiesPanel() {
         </button>
       </div>
       {def && <AttributeSection symbol={symbol} fieldConfig={def.fieldConfig.attribute} />}
+      <SymbolKabelInfo symbol={symbol} />
       {def && def.fieldConfig.stromkreis !== 'hidden' && (
         <ElektrischeSection symbol={symbol} relevance={def.fieldConfig.stromkreis} />
       )}

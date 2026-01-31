@@ -1,4 +1,4 @@
-import { DIN_RAIL_SVG_BASE } from './dinRailCatalog';
+import { CABINET_SVG_BASE } from './cabinetCatalog';
 
 /**
  * Maps installation symbol keys to their Stromlaufplan (circuit diagram) SVG filenames.
@@ -58,5 +58,5 @@ export const symbolSvgMap: Record<string, string> = {
 export function getSymbolSvgPath(symbolKey: string): string | undefined {
   const file = symbolSvgMap[symbolKey];
   if (!file) return undefined;
-  return `${DIN_RAIL_SVG_BASE}/${file}`;
+  return `${CABINET_SVG_BASE}/${file}`;
 }

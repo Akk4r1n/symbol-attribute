@@ -1,8 +1,8 @@
-import type { ProtectionRequirement, StromkreisDevice, DinRailDevice } from '../types';
-import { dinRailCatalog } from '../data/dinRailCatalog';
+import type { ProtectionRequirement, StromkreisDevice, CabinetDevice } from '../types';
+import { cabinetCatalog } from '../data/cabinetCatalog';
 
 /**
- * Map ProtectionRequirement.role -> DinRailDevice.category for filtering.
+ * Map ProtectionRequirement.role -> CabinetDevice.category for filtering.
  * rcd_type_b is a special case: same category 'rcd' but filtered by rcdType 'B'.
  */
 function categoryForRole(role: string): string {
@@ -11,13 +11,13 @@ function categoryForRole(role: string): string {
 }
 
 /**
- * Find the smallest matching DinRailDevice for a given ProtectionRequirement.
+ * Find the smallest matching CabinetDevice for a given ProtectionRequirement.
  * Returns undefined if no match found.
  */
-export function resolveDevice(req: ProtectionRequirement): DinRailDevice | undefined {
+export function resolveDevice(req: ProtectionRequirement): CabinetDevice | undefined {
   const cat = categoryForRole(req.role);
 
-  const candidates = dinRailCatalog.filter((d) => {
+  const candidates = cabinetCatalog.filter((d) => {
     if (d.category !== cat) return false;
 
     // Poles: must match exactly if specified

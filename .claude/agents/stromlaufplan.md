@@ -57,5 +57,5 @@ Sammelschiene (L1) ────────────────
 ### Datenfluss
 - `useStromkreise()` liefert Stromkreise mit `devices[]` und `verteilerId`
 - `useAllSymbols()` liefert alle platzierten Symbole
-- `findDevice(deviceId)` aus dinRailCatalog fuer Geraete-Labels
+- `findDevice(deviceId)` aus cabinetCatalog fuer Geraete-Labels
 - Gebaeude-Struktur fuer Raumnamen

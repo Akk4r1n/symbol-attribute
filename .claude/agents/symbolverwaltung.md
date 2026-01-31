@@ -18,7 +18,7 @@ Die Symbolverwaltung pflegt den Katalog aller platzierbaren elektrotechnischen S
 4 Tabs fuer Planer und Entwickler:
 1. **Durchgaengigkeit** - Zeigt pro Symbol: welche Eigenschaften relevant sind, welche Schutzgeraete noetig, wo im Schaltschrank, in welchen Plaenen verwendet
 2. **Eigenschafts-Register** - Alle Eigenschaften unabhaengig von Symbolen, mit Feature-Area-Matrix (welches Feature nutzt welche Eigenschaft)
-3. **DIN-Rail Geraete** - Kompletter Geraetekatalog mit Suche und Filter
+3. **Schaltschrank Geraete** - Kompletter Geraetekatalog mit Suche und Filter
 4. **Stromkreise** - Abgeleitete Stromkreise verwalten (umbenennen, sperren, Symbole verschieben)
 
 #### FieldConfig-System

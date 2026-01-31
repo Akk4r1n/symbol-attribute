@@ -18,7 +18,7 @@ SymbolDefinition (Katalog, ~140 Symbole, 13 Kategorien)
   -> PlacedSymbol (pro Raum, Zustand-Store)
     -> deriveCircuits() gruppiert nach verteilerId + raumId + groupingHint
       -> mergeRequirements() -> hoechster ratedCurrent pro Rolle
-        -> resolveDevices() -> kleinstes passendes DinRailDevice
+        -> resolveDevices() -> kleinstes passendes CabinetDevice
           -> DerivedCircuit[]
             -> Views: Stromlaufplan | Aufbauplan | Stueckliste | Bestellliste
 ```
@@ -26,14 +26,14 @@ SymbolDefinition (Katalog, ~140 Symbole, 13 Kategorien)
 ## File Structure
 ```
 src/
-  types/index.ts            # ALLE Typen (SymbolDefinition, PlacedSymbol, DerivedCircuit, DinRailDevice, ...)
+  types/index.ts            # ALLE Typen (SymbolDefinition, PlacedSymbol, DerivedCircuit, CabinetDevice, ...)
   store/useAppStore.ts      # Zustand + persist v2 + Selektoren (useDerivedCircuits, useSymbolsForActiveRaum)
   logic/
     circuitDerivation.ts    # Bottom-up: PlacedSymbol[] -> DerivedCircuit[]
-    deviceResolver.ts       # ProtectionRequirement -> DinRailDevice (smallest fit)
+    deviceResolver.ts       # ProtectionRequirement -> CabinetDevice (smallest fit)
   data/
     mockSymbols.ts          # ~140 SymbolDefinitions, fieldConfigs, protectionProfiles, cabinetMappings
-    dinRailCatalog.ts       # ~180 DinRailDevices (MCB, RCD, RCBO, AFDD, SLS, Schuetz, ...)
+    cabinetCatalog.ts       # ~180 CabinetDevices (MCB, RCD, RCBO, AFDD, SLS, Schuetz, ...)
     mockProject.ts          # Gebaeude-Struktur + 8 Legacy-Stromkreise
     propertyRegistry.ts     # PropertyDefinition[] mit Feature-Area-Matrix
   components/
@@ -63,7 +63,7 @@ src/
 | Stromkreis | Circuit |
 | Sicherung / Schutzgeraet | MCB / RCD / RCBO / AFDD |
 | Stromlaufplan | Schaltplan / Circuit Diagram |
-| Aufbauplan | Schaltschrank-Layout / DIN Rail Cabinet |
+| Aufbauplan | Schaltschrank-Layout / Cabinet Layout |
 | Stueckliste | Bill of Materials |
 | Bestellliste | Bestellliste (nur Material) |
 | Raum / Stockwerk / Gebaeude | Room / Floor / Building |

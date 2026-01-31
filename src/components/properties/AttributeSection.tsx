@@ -9,7 +9,6 @@ interface Props {
 const FIELDS: { key: keyof PlacedSymbol['attribute']; label: string; type?: string }[] = [
   { key: 'farbe', label: 'Farbe' },
   { key: 'hoehe', label: 'Höhe (cm)', type: 'number' },
-  { key: 'kabeltyp', label: 'Kabeltyp' },
 ];
 
 export function AttributeSection({ symbol, fieldConfig }: Props) {

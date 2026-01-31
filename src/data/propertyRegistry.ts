@@ -27,7 +27,7 @@ export const propertyRegistry: PropertyDefinition[] = [
     id: 'kabeltyp',
     name: 'Kabeltyp',
     group: 'attribute',
-    description: 'Leitung zum Verbraucher (z.B. NYM-J 3x1,5, NYM-J 5x2,5)',
+    description: 'Leitung zum Verbraucher -- definiert auf Kabel-Ebene, nicht pro Symbol',
     usedBy: ['stromlaufplan', 'aufbauplan', 'stueckliste', 'pruefprotokoll'],
     valueType: 'string',
   },

@@ -20,8 +20,8 @@ export interface SymbolFieldConfig {
   attribute: {
     farbe: FieldRelevance;
     hoehe: FieldRelevance;
-    kabeltyp: FieldRelevance;
   };
+  kabel: FieldRelevance;
   stromkreis: FieldRelevance;
   knx: FieldRelevance;
 }
@@ -29,12 +29,11 @@ export interface SymbolFieldConfig {
 export interface Attribute {
   farbe: string;
   hoehe: number;
-  kabeltyp: string;
 }
 
-// --- DIN-Rail Device Catalog ---
+// --- Cabinet Device Catalog ---
 
-export type DinRailCategory =
+export type CabinetCategory =
   | 'mcb' | 'rcd' | 'rcbo' | 'afdd'
   | 'sls' | 'main_switch'
   | 'contactor' | 'meter' | 'spd'
@@ -42,7 +41,7 @@ export type DinRailCategory =
   | 'relay' | 'power_supply'
   | 'intercom_system' | 'energy' | 'contact';
 
-export const DIN_RAIL_CATEGORY_LABELS: Record<DinRailCategory, string> = {
+export const CABINET_CATEGORY_LABELS: Record<CabinetCategory, string> = {
   mcb: 'Leitungsschutzschalter',
   rcd: 'FI-Schutzschalter',
   rcbo: 'FI/LS-Kombination',
@@ -62,9 +61,9 @@ export const DIN_RAIL_CATEGORY_LABELS: Record<DinRailCategory, string> = {
   contact: 'Hilfsgeräte / Kontakte',
 };
 
-export interface DinRailDevice {
+export interface CabinetDevice {
   id: string;
-  category: DinRailCategory;
+  category: CabinetCategory;
   label: string;
   teWidth: number;
   poles: number;
@@ -148,6 +147,7 @@ export interface DerivedCircuit {
   symbolIds: string[];
   resolvedDevices: StromkreisDevice[];
   mergedRequirements: ProtectionRequirement[];
+  kabelIds: string[];
 }
 
 export interface CircuitGroupOverride {
@@ -183,10 +183,13 @@ export interface SymbolDefinition {
   /** Path to SVG in /public, e.g. "/symbols/simple-socket-grounded_socket.svg" */
   svgPath: string;
   defaultAttribute: Attribute;
+  /** Default cable type when creating a Kabel for this symbol */
+  defaultKabeltyp: string;
   defaultKnx: KnxEigenschaften;
   defaultArtikel: ArtikelPosition[];
   fieldConfig: SymbolFieldConfig;
   isDistributor: boolean;
+  isVerbraucher: boolean;
   requiredElectricalProperties: ElectricalPropertyType[];
   protectionProfile: ProtectionProfile;
   cabinetMapping: CabinetMappingInfo;
@@ -227,6 +230,7 @@ export interface Gebaeude {
 export type ViewType =
   | 'symboluebersicht'
   | 'installationsplan'
+  | 'netzkonfiguration'
   | 'stromlaufplan'
   | 'aufbauplan'
   | 'stueckliste'
@@ -268,6 +272,111 @@ export interface PropertyDefinition {
   usedBy: FeatureArea[];
   /** Value type for display */
   valueType: 'string' | 'number' | 'enum' | 'boolean' | 'device_ref';
+}
+
+// --- Kabel (Cable) ---
+
+export interface CoreAssignment {
+  coreIndex: number;
+  coreLabel: string;
+  circuitGroupId: string | null;
+}
+
+export interface Kabel {
+  id: string;
+  kabeltyp: string;
+  connectedSymbolIds: string[];
+  coreAssignments: CoreAssignment[];
+}
+
+export type SelectionTarget =
+  | { type: 'symbol'; id: string }
+  | { type: 'kabel'; id: string }
+  | null;
+
+// --- Netzstruktur (Network Infrastructure) ---
+
+export type NetzwerkTyp =
+  | '230_400v'
+  | 'kleinspannung'
+  | 'konventionell'
+  | 'knx'
+  | 'loxone'
+  | 'reg_bussysteme'
+  | 'direktverbinder';
+
+export const NETZWERK_TYP_LABELS: Record<NetzwerkTyp, string> = {
+  '230_400v': '230/400V Netz',
+  kleinspannung: 'Kleinspannung',
+  konventionell: 'Komponenten f. konventionelle Installation',
+  knx: 'KNX-Komponenten',
+  loxone: 'Loxone Komponenten',
+  reg_bussysteme: 'Weitere REG-Geräte und Bussysteme',
+  direktverbinder: 'Direktverbinder',
+};
+
+export type Netzform =
+  | 'TN-S_5pol'
+  | 'TN-S_3pol'
+  | 'TN-C-S_5pol'
+  | 'TN-C_4pol'
+  | 'TT_5pol';
+
+export const NETZFORM_LABELS: Record<Netzform, string> = {
+  'TN-S_5pol': '5-polig, TN-S',
+  'TN-S_3pol': '3-polig, TN-S',
+  'TN-C-S_5pol': '5-polig, TN-C-S',
+  'TN-C_4pol': '4-polig, TN-C',
+  'TT_5pol': '5-polig, TT',
+};
+
+export type UeberspannungsschutzPosition = 'vor_zaehler' | 'nach_zaehler';
+
+export const UEBERSPANNUNGSSCHUTZ_POSITION_LABELS: Record<UeberspannungsschutzPosition, string> = {
+  vor_zaehler: 'Vor Zähler',
+  nach_zaehler: 'Nach Zähler',
+};
+
+export interface NetzKonfiguration {
+  id: string;
+  netzwerkTyp: NetzwerkTyp;
+  bezeichnung: string;
+  notiz: string;
+  leitungstyp: string;
+  querschnitt: number;
+  einspeisung: {
+    netzform: Netzform;
+    alsKlemmenblock: boolean;
+  };
+  zaehlervorsicherung: {
+    enabled: boolean;
+    ampere: number;
+    deviceId: string;
+  };
+  zaehler: {
+    enabled: boolean;
+    deviceId: string;
+  };
+  hauptschalter: {
+    enabled: boolean;
+    ampere: number;
+    deviceId: string;
+  };
+  ueberspannungsschutz: {
+    enabled: boolean;
+    position: UeberspannungsschutzPosition;
+    deviceId: string;
+    vorsicherung: {
+      enabled: boolean;
+      ampere: number;
+    };
+  };
+  verteilerIds: string[];
+}
+
+export interface Verteiler {
+  id: string;
+  name: string;
 }
 
 export const CATEGORY_LABELS: Record<SymbolCategory, string> = {

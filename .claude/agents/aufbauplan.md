@@ -5,7 +5,7 @@ Der Aufbauplan zeigt den physischen Aufbau der Verteilerschraenke (Schaltschraen
 
 ### Nutzersicht
 - Elektrofachkraft sieht, wie der Verteilerschrank bestuckt wird
-- Pro Verteiler werden alle benoetigten DIN-Rail-Geraete auf Hutschienen dargestellt
+- Pro Verteiler werden alle benoetigten Schaltschrank-Geraete auf Hutschienen dargestellt
 - Die Breite jedes Geraets wird in TE (Teilungseinheiten, 18mm) angegeben
 - Wenn eine Hutschiene voll ist (12 TE), wird automatisch eine neue Reihe begonnen
 - Farbcodierung zeigt sofort die Art des Geraets (RCD, MCB, AFDD, ...)
@@ -45,5 +45,5 @@ Identisch zum Stromlaufplan (RCD=gelb, AFDD=pink, MCB=blau).
 
 ### Datenfluss
 - `useStromkreise()` -> Stromkreise gruppiert nach verteilerId
-- `findDevice()` -> DinRailDevice mit teWidth, label, category
+- `findDevice()` -> CabinetDevice mit teWidth, label, category
 - `useAllSymbols()` -> Verbraucher-Count pro Stromkreis

@@ -6,6 +6,7 @@ import type {
   ProtectionRequirement,
   CircuitGroupingHint,
   Gebaeude,
+  Kabel,
 } from '../types';
 import { GROUPING_HINT_LABELS } from '../types';
 import { resolveDevices } from './deviceResolver';
@@ -89,10 +90,11 @@ export interface DeriveCircuitsInput {
   symbolCatalog: SymbolDefinition[];
   gebaeude: Gebaeude;
   circuitGroupOverrides: CircuitGroupOverride[];
+  kabel: Kabel[];
 }
 
 export function deriveCircuits(input: DeriveCircuitsInput): DerivedCircuit[] {
-  const { placedSymbols, symbolCatalog, gebaeude, circuitGroupOverrides } = input;
+  const { placedSymbols, symbolCatalog, gebaeude, circuitGroupOverrides, kabel } = input;
 
   const catalogMap = new Map(symbolCatalog.map((s) => [s.key, s]));
   const overrideMap = new Map(circuitGroupOverrides.map((o) => [o.groupId, o]));
@@ -115,7 +117,7 @@ export function deriveCircuits(input: DeriveCircuitsInput): DerivedCircuit[] {
     const reqs = effectiveRequirements(sym, def);
     if (reqs.length === 0) continue;
 
-    const verteilerId = sym.verteilerId ?? 'HV-EG'; // default Verteiler fallback
+    const verteilerId = sym.verteilerId ?? 'HV-EG';
 
     eligible.push({
       symbol: sym,
@@ -127,11 +129,29 @@ export function deriveCircuits(input: DeriveCircuitsInput): DerivedCircuit[] {
     });
   }
 
-  // 2. Group symbols
-  // Symbols with manual circuitGroupOverride go to their specified group
-  // Dedicated symbols get their own group
-  // Others group by verteilerId + raumId + groupingHint
+  // Pre-step: build cable-based grouping constraints
+  // Cables with no coreAssignments -> all connected symbols share a group key
+  const eligibleIds = new Set(eligible.map((e) => e.symbol.id));
+  const cableGroupMap = new Map<string, string>(); // symbolId -> forced group key
 
+  for (const cable of kabel) {
+    if (cable.coreAssignments.length > 0) continue; // core-based grouping deferred
+    // Find the first eligible non-dedicated symbol to anchor the group key
+    const anchorEntry = eligible.find(
+      (e) => cable.connectedSymbolIds.includes(e.symbol.id) && !e.dedicatedCircuit && !e.symbol.circuitGroupOverride
+    );
+    if (!anchorEntry) continue;
+
+    const sharedKey = groupKey(anchorEntry.verteilerId, anchorEntry.symbol.raumId, anchorEntry.groupingHint);
+    for (const sid of cable.connectedSymbolIds) {
+      if (eligibleIds.has(sid) && !cableGroupMap.has(sid)) {
+        cableGroupMap.set(sid, sharedKey);
+      }
+    }
+  }
+
+  // 2. Group symbols
+  // Priority: circuitGroupOverride > cable-group > dedicatedCircuit > auto-group
   const groups = new Map<string, SymbolWithProfile[]>();
 
   let dedicatedCounter = 0;
@@ -139,13 +159,12 @@ export function deriveCircuits(input: DeriveCircuitsInput): DerivedCircuit[] {
     let key: string;
 
     if (entry.symbol.circuitGroupOverride) {
-      // Manual override: use the specified group id
       key = entry.symbol.circuitGroupOverride;
+    } else if (cableGroupMap.has(entry.symbol.id) && !entry.dedicatedCircuit) {
+      key = cableGroupMap.get(entry.symbol.id)!;
     } else if (entry.dedicatedCircuit) {
-      // Dedicated: each symbol gets its own circuit
       key = `dedicated::${entry.symbol.id}::${dedicatedCounter++}`;
     } else {
-      // Auto-group by verteilerId + raumId + groupingHint
       key = groupKey(entry.verteilerId, entry.symbol.raumId, entry.groupingHint);
     }
 
@@ -158,7 +177,6 @@ export function deriveCircuits(input: DeriveCircuitsInput): DerivedCircuit[] {
   const circuits: DerivedCircuit[] = [];
   let skCounter = 1;
 
-  // Sort groups deterministically (by key)
   const sortedKeys = [...groups.keys()].sort();
 
   for (const key of sortedKeys) {
@@ -168,20 +186,23 @@ export function deriveCircuits(input: DeriveCircuitsInput): DerivedCircuit[] {
     const override = overrideMap.get(key);
     const firstMember = members[0];
 
-    // Merge requirements from all members
     const allReqs = members.map((m) => m.requirements);
     const merged = mergeRequirements(allReqs);
 
-    // Resolve devices from merged requirements
     const resolvedDevices = override?.deviceOverrides ?? resolveDevices(merged);
 
-    // Auto-name
     const hintLabel = GROUPING_HINT_LABELS[firstMember.groupingHint] ?? firstMember.groupingHint;
     const room = raumName(gebaeude, firstMember.symbol.raumId);
     const isDedicated = firstMember.dedicatedCircuit;
     const autoName = isDedicated
       ? `SK${skCounter} ${firstMember.def.label} ${room}`
       : `SK${skCounter} ${hintLabel} ${room}`;
+
+    // Find cables that overlap with this circuit's symbols
+    const symbolIdSet = new Set(members.map((m) => m.symbol.id));
+    const kabelIds = kabel
+      .filter((k) => k.connectedSymbolIds.some((sid) => symbolIdSet.has(sid)))
+      .map((k) => k.id);
 
     const circuit: DerivedCircuit = {
       id: circuitId(key),
@@ -192,6 +213,7 @@ export function deriveCircuits(input: DeriveCircuitsInput): DerivedCircuit[] {
       symbolIds: members.map((m) => m.symbol.id),
       resolvedDevices,
       mergedRequirements: merged,
+      kabelIds,
     };
 
     circuits.push(circuit);

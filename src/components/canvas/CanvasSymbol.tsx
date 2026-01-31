@@ -11,8 +11,14 @@ export function CanvasSymbol({ symbol }: { symbol: PlacedSymbol }) {
   const imageRef = useRef<Konva.Image>(null);
   const moveSymbol = useAppStore((s) => s.moveSymbol);
   const selectSymbol = useAppStore((s) => s.selectSymbol);
-  const selectedId = useAppStore((s) => s.selectedSymbolId);
-  const isSelected = selectedId === symbol.id;
+  const addToKabelDraft = useAppStore((s) => s.addToKabelDraft);
+  const interactionMode = useAppStore((s) => s.interactionMode);
+  const kabelDraft = useAppStore((s) => s.kabelDraft);
+  const selectedTarget = useAppStore((s) => s.selectedTarget);
+
+  const isSelected = selectedTarget?.type === 'symbol' && selectedTarget.id === symbol.id;
+  const isInDraft = kabelDraft.includes(symbol.id);
+  const isKabelMode = interactionMode === 'kabel';
   const def = symbolCatalog.find((s) => s.key === symbol.symbolKey);
 
   useEffect(() => {
@@ -33,33 +39,42 @@ export function CanvasSymbol({ symbol }: { symbol: PlacedSymbol }) {
 
   const handleClick = (e: Konva.KonvaEventObject<MouseEvent>) => {
     e.cancelBubble = true;
-    selectSymbol(symbol.id);
+    if (isKabelMode) {
+      addToKabelDraft(symbol.id);
+    } else {
+      selectSymbol(symbol.id);
+    }
   };
+
+  const borderColor = isKabelMode
+    ? (isInDraft ? '#22c55e' : '#86efac')
+    : '#3b82f6';
 
   return (
     <Group
       x={symbol.x}
       y={symbol.y}
-      draggable
+      draggable={!isKabelMode}
       onDragEnd={handleDragEnd}
       onClick={handleClick}
-      onTap={handleClick}
+      onTap={handleClick as unknown as (evt: Konva.KonvaEventObject<TouchEvent>) => void}
     >
-      {isSelected && (
+      {(isSelected || (isKabelMode && isInDraft)) && (
         <Rect
           x={-4}
           y={-4}
           width={SYMBOL_SIZE + 8}
           height={SYMBOL_SIZE + 20}
-          stroke="#3b82f6"
+          stroke={borderColor}
           strokeWidth={2}
           cornerRadius={4}
           dash={[4, 2]}
-          fill="rgba(59,130,246,0.05)"
+          fill={isKabelMode ? 'rgba(34,197,94,0.08)' : 'rgba(59,130,246,0.05)'}
         />
       )}
       <KonvaImage
         ref={imageRef}
+        image={undefined as unknown as CanvasImageSource}
         width={SYMBOL_SIZE}
         height={SYMBOL_SIZE}
       />

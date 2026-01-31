@@ -14,7 +14,14 @@
       "Bash(powershell -NoProfile -File NUL -Command:*)",
       "Bash(powershell:*)",
       "Bash(npx eslint:*)",
-      "Bash(node -e:*)"
+      "Bash(node -e:*)",
+      "Bash(git mv:*)",
+      "Bash(echo:*)",
+      "Bash(cmd /c \"npx tsc -b && npx vite build\")",
+      "Bash(cmd /c \"cd /d c:\\\\Dev\\\\SymbolAttribute && npx tsc -b --noEmit 2>&1\")",
+      "Bash(cmd /c \"cd /d c:\\\\Dev\\\\SymbolAttribute && npx vite build 2>&1\")",
+      "Bash(cmd /c \"cd /d c:\\\\Dev\\\\SymbolAttribute && npx tsc -b 2>&1 && echo TSC_OK && npx vite build 2>&1 && echo VITE_OK\")",
+      "Bash(cmd /c \"cd c:\\\\Dev\\\\SymbolAttribute & npx tsc --noEmit\")"
     ]
   }
 }

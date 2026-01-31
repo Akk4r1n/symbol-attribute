@@ -10,13 +10,14 @@ import { Aufbauplan } from '../views/Aufbauplan';
 import { Stueckliste } from '../views/Stueckliste';
 import { Bestellliste } from '../views/Bestellliste';
 import { Symboluebersicht } from '../views/Symboluebersicht';
+import { Netzkonfiguration } from '../views/Netzkonfiguration';
 
 export function AppShell() {
   const activeView = useAppStore((s) => s.activeView);
-  const selectedSymbolId = useAppStore((s) => s.selectedSymbolId);
+  const selectedTarget = useAppStore((s) => s.selectedTarget);
   const [searchTerm, setSearchTerm] = useState('');
 
-  const isFullWidth = activeView === 'symboluebersicht';
+  const isFullWidth = activeView === 'symboluebersicht' || activeView === 'netzkonfiguration';
 
   const renderView = () => {
     switch (activeView) {
@@ -24,6 +25,8 @@ export function AppShell() {
         return <Symboluebersicht />;
       case 'installationsplan':
         return <InstallationCanvas />;
+      case 'netzkonfiguration':
+        return <Netzkonfiguration />;
       case 'stromlaufplan':
         return <Stromlaufplan />;
       case 'aufbauplan':
@@ -64,7 +67,7 @@ export function AppShell() {
         </main>
 
         {/* Right sidebar - Properties */}
-        {selectedSymbolId && activeView === 'installationsplan' && (
+        {selectedTarget && activeView === 'installationsplan' && (
           <aside className="w-80 border-l border-gray-200 bg-white overflow-y-auto">
             <PropertiesPanel />
           </aside>

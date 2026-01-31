@@ -22,14 +22,14 @@ Statt manuell Stromkreise anzulegen und Symbole zuzuweisen, leitet die App Strom
 Platzierte Symbole (mit Verteiler + Schutzprofil)
   -> Automatische Gruppierung (verteilerId + raumId + groupingHint)
     -> Anforderungen zusammenfuehren (hoechster Strom pro Schutzgeraete-Rolle)
-      -> Passendes DIN-Rail-Geraet aus Katalog waehlen (kleinstes passendes)
+      -> Passendes Schaltschrank-Geraet aus Katalog waehlen (kleinstes passendes)
         -> Fertiger Stromkreis mit allen Schutzgeraeten
 ```
 
 ## Owned Files
 - `src/logic/circuitDerivation.ts` - PlacedSymbol[] -> DerivedCircuit[]
-- `src/logic/deviceResolver.ts` - ProtectionRequirement -> DinRailDevice
-- `src/data/dinRailCatalog.ts` - ~180 DinRailDevices (MCB, RCD, RCBO, AFDD, SLS, ...)
+- `src/logic/deviceResolver.ts` - ProtectionRequirement -> CabinetDevice
+- `src/data/cabinetCatalog.ts` - ~180 CabinetDevices (MCB, RCD, RCBO, AFDD, SLS, ...)
 - `src/components/properties/ElektrischeSection.tsx` - Verteiler-Selector, Protection-Override-UI
 
 ## Technische Details
@@ -42,7 +42,7 @@ Platzierte Symbole (mit Verteiler + Schutzprofil)
    - Dedicated: eigener SK (Herd, Wallbox, etc.)
    - Auto: `groupKey(verteilerId, raumId, groupingHint)`
 4. Merge: pro Rolle hoechster `ratedCurrent`
-5. Resolve: kleinstes passendes DinRailDevice pro Requirement
+5. Resolve: kleinstes passendes CabinetDevice pro Requirement
 6. Name: `SK{n} {hintLabel} {raumName}` / `SK{n} {symbolLabel} {raumName}` (dedicated)
 
 ### Device Resolution (`resolveDevice`)

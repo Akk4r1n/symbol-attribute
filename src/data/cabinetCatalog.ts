@@ -1,9 +1,9 @@
-import type { DinRailDevice, DinRailCategory } from '../types';
+import type { CabinetDevice, CabinetCategory } from '../types';
 
-export const DIN_RAIL_SVG_BASE = 'C:/Users/marce/Desktop/myElectricPlan/symbol-library-electrical-diagram';
-export const DIN_RAIL_TE_PER_ROW = 12;
+export const CABINET_SVG_BASE = 'C:/Users/marce/Desktop/myElectricPlan/symbol-library-electrical-diagram';
+export const CABINET_TE_PER_ROW = 12;
 
-export const dinRailCatalog: DinRailDevice[] = [
+export const cabinetCatalog: CabinetDevice[] = [
   // ===== MCB (Leitungsschutzschalter) =====
   // B-Charakteristik 1-polig
   { id: 'mcb-b6-1p',  category: 'mcb', label: 'LSS B6A 1-polig',  teWidth: 1, poles: 1, svgFile: 'ls-1pol.svg', ratedCurrent: 6,  characteristic: 'B' },
@@ -184,22 +184,22 @@ export const dinRailCatalog: DinRailDevice[] = [
 
 // --- Lookup helpers ---
 
-const catalogMap = new Map(dinRailCatalog.map((d) => [d.id, d]));
+const catalogMap = new Map(cabinetCatalog.map((d) => [d.id, d]));
 
-export function findDevice(id: string): DinRailDevice | undefined {
+export function findDevice(id: string): CabinetDevice | undefined {
   return catalogMap.get(id);
 }
 
-export function devicesByCategory(cat: DinRailCategory): DinRailDevice[] {
-  return dinRailCatalog.filter((d) => d.category === cat);
+export function devicesByCategory(cat: CabinetCategory): CabinetDevice[] {
+  return cabinetCatalog.filter((d) => d.category === cat);
 }
 
-export function getDinRailSvgPath(device: DinRailDevice): string {
-  return `${DIN_RAIL_SVG_BASE}/${device.svgFile}`;
+export function getCabinetSvgPath(device: CabinetDevice): string {
+  return `${CABINET_SVG_BASE}/${device.svgFile}`;
 }
 
-/** Map ElectricalPropertyType -> DinRailCategory for device selection filtering. */
-export function dinRailCategoryForRole(role: string): DinRailCategory {
+/** Map ElectricalPropertyType -> CabinetCategory for device selection filtering. */
+export function cabinetCategoryForRole(role: string): CabinetCategory {
   switch (role) {
     case 'mcb': return 'mcb';
     case 'rcd': return 'rcd';
@@ -211,9 +211,9 @@ export function dinRailCategoryForRole(role: string): DinRailCategory {
 }
 
 /** Filter devices for a given ElectricalPropertyType role. */
-export function devicesForRole(role: string): DinRailDevice[] {
+export function devicesForRole(role: string): CabinetDevice[] {
   if (role === 'rcd_type_b') {
-    return dinRailCatalog.filter((d) => d.category === 'rcd' && d.rcdType === 'B');
+    return cabinetCatalog.filter((d) => d.category === 'rcd' && d.rcdType === 'B');
   }
-  return devicesByCategory(dinRailCategoryForRole(role));
+  return devicesByCategory(cabinetCategoryForRole(role));
 }

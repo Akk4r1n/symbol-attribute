@@ -1,12 +1,16 @@
 import { useMemo, useRef, useEffect, useState } from 'react';
 import { Stage, Layer, Rect, Text, Line, Group } from 'react-konva';
-import { useDerivedCircuits } from '../../store/useAppStore';
-import { findDevice, DIN_RAIL_TE_PER_ROW } from '../../data/dinRailCatalog';
+import { useDerivedCircuits, useNetzKonfigurationen } from '../../store/useAppStore';
+import { findDevice, CABINET_TE_PER_ROW } from '../../data/cabinetCatalog';
 import { groupBySharedRcd, circuitDevicesWithoutRcd } from '../../logic/rcdGrouping';
+import { findNetzForVerteiler, resolveUpstreamDevices } from '../../logic/netzUpstream';
+import type { NetzKonfiguration } from '../../types';
+import { NETZFORM_LABELS } from '../../types';
 
 const TE_PX = 30;
 const ROW_H = 50;
-const HEADER_H = 35;
+const HEADER_H_BASE = 35;
+const HEADER_H_WITH_NETZ = 48;
 
 interface PlacedDevice {
   deviceId: string;
@@ -17,12 +21,14 @@ interface PlacedDevice {
   row: number;
   color: string;
   isShared: boolean;
+  isUpstream: boolean;
 }
 
 export function Aufbauplan() {
   const containerRef = useRef<HTMLDivElement>(null);
   const [dims, setDims] = useState({ width: 800, height: 600 });
   const derivedCircuits = useDerivedCircuits();
+  const netzKonfigurationen = useNetzKonfigurationen();
 
   useEffect(() => {
     const el = containerRef.current;
@@ -50,11 +56,31 @@ export function Aufbauplan() {
       for (const cid of g.circuitIds) circuitToRcdGroup.set(cid, g);
     }
 
-    const layouts: { name: string; devices: PlacedDevice[] }[] = [];
+    const layouts: { name: string; devices: PlacedDevice[]; netz: NetzKonfiguration | undefined }[] = [];
 
     for (const [name, circuits] of byVerteiler) {
       const devices: PlacedDevice[] = [];
       const placedRcdGroupIds = new Set<string>();
+
+      // Upstream devices from NetzKonfiguration
+      const netz = findNetzForVerteiler(netzKonfigurationen, name);
+      if (netz) {
+        const upstream = resolveUpstreamDevices(netz);
+        for (const ud of upstream) {
+          if (ud.teWidth <= 0) continue; // skip Einspeisung (no DIN rail footprint)
+          devices.push({
+            deviceId: ud.device?.id ?? ud.slot,
+            label: ud.sublabel ? `${ud.label} ${ud.sublabel}` : ud.label,
+            teWidth: ud.teWidth,
+            role: ud.slot,
+            x: 0,
+            row: 0,
+            color: ud.slot === 'zaehler' ? '#e0e7ff' : '#d1fae5',
+            isShared: false,
+            isUpstream: true,
+          });
+        }
+      }
 
       for (const circuit of circuits) {
         const rcdGroup = circuitToRcdGroup.get(circuit.id);
@@ -73,6 +99,7 @@ export function Aufbauplan() {
               row: 0,
               color: '#fef3c7',
               isShared: true,
+              isUpstream: false,
             });
           }
         }
@@ -101,6 +128,7 @@ export function Aufbauplan() {
             row: 0,
             color,
             isShared: false,
+            isUpstream: false,
           });
         }
       }
@@ -109,7 +137,7 @@ export function Aufbauplan() {
       let totalTE = 0;
       let row = 0;
       for (const d of devices) {
-        if (totalTE + d.teWidth > DIN_RAIL_TE_PER_ROW) {
+        if (totalTE + d.teWidth > CABINET_TE_PER_ROW) {
           row++;
           totalTE = 0;
         }
@@ -118,10 +146,10 @@ export function Aufbauplan() {
         totalTE += d.teWidth;
       }
 
-      layouts.push({ name, devices });
+      layouts.push({ name, devices, netz });
     }
     return layouts;
-  }, [derivedCircuits]);
+  }, [derivedCircuits, netzKonfigurationen]);
 
   const LEFT = 40;
   const TOP = 60;
@@ -129,11 +157,12 @@ export function Aufbauplan() {
 
   let totalHeight = TOP;
   for (const layout of verteilerLayouts) {
+    const headerH = layout.netz ? HEADER_H_WITH_NETZ : HEADER_H_BASE;
     const maxRow = Math.max(0, ...layout.devices.map(d => d.row));
-    totalHeight += HEADER_H + (maxRow + 1) * ROW_H + CABINET_GAP;
+    totalHeight += headerH + (maxRow + 1) * ROW_H + CABINET_GAP;
   }
   totalHeight = Math.max(totalHeight, dims.height);
-  const totalWidth = Math.max(dims.width, LEFT + DIN_RAIL_TE_PER_ROW * TE_PX + 80);
+  const totalWidth = Math.max(dims.width, LEFT + CABINET_TE_PER_ROW * TE_PX + 80);
 
   let yOffset = TOP;
 
@@ -148,36 +177,45 @@ export function Aufbauplan() {
           <Layer>
             <Text text="Aufbauplan" x={LEFT} y={15} fontSize={18} fontStyle="bold" fill="#1f2937" />
             {verteilerLayouts.map((layout, vi) => {
+              const headerH = layout.netz ? HEADER_H_WITH_NETZ : HEADER_H_BASE;
               const maxRow = Math.max(0, ...layout.devices.map(d => d.row));
-              const cabinetH = HEADER_H + (maxRow + 1) * ROW_H + 10;
+              const cabinetH = headerH + (maxRow + 1) * ROW_H + 10;
               const startY = yOffset;
               yOffset += cabinetH + CABINET_GAP;
 
               return (
                 <Group key={vi}>
                   {/* Cabinet background */}
-                  <Rect x={LEFT} y={startY} width={DIN_RAIL_TE_PER_ROW * TE_PX + 20} height={cabinetH} fill="#f9fafb" stroke="#d1d5db" strokeWidth={1} cornerRadius={4} />
-                  {/* Cabinet name */}
-                  <Rect x={LEFT} y={startY} width={DIN_RAIL_TE_PER_ROW * TE_PX + 20} height={HEADER_H} fill="#374151" cornerRadius={[4, 4, 0, 0]} />
+                  <Rect x={LEFT} y={startY} width={CABINET_TE_PER_ROW * TE_PX + 20} height={cabinetH} fill="#f9fafb" stroke="#d1d5db" strokeWidth={1} cornerRadius={4} />
+                  {/* Cabinet header */}
+                  <Rect x={LEFT} y={startY} width={CABINET_TE_PER_ROW * TE_PX + 20} height={headerH} fill="#374151" cornerRadius={[4, 4, 0, 0]} />
                   <Text text={layout.name} x={LEFT + 10} y={startY + 10} fontSize={14} fontStyle="bold" fill="white" />
+                  {layout.netz && (
+                    <Text
+                      text={`${NETZFORM_LABELS[layout.netz.einspeisung.netzform]} | ${layout.netz.leitungstyp} ${layout.netz.querschnitt}mm²`}
+                      x={LEFT + 10} y={startY + 27} fontSize={10} fill="#d1d5db"
+                    />
+                  )}
 
                   {/* DIN rails */}
                   {Array.from({ length: maxRow + 1 }, (_, ri) => (
-                    <Line key={ri} points={[LEFT + 10, startY + HEADER_H + ri * ROW_H + 20, LEFT + DIN_RAIL_TE_PER_ROW * TE_PX + 10, startY + HEADER_H + ri * ROW_H + 20]} stroke="#9ca3af" strokeWidth={2} dash={[4, 4]} />
+                    <Line key={ri} points={[LEFT + 10, startY + headerH + ri * ROW_H + 20, LEFT + CABINET_TE_PER_ROW * TE_PX + 10, startY + headerH + ri * ROW_H + 20]} stroke="#9ca3af" strokeWidth={2} dash={[4, 4]} />
                   ))}
 
                   {/* Devices */}
                   {layout.devices.map((d, di) => {
                     const dx = LEFT + 10 + d.x;
-                    const dy = startY + HEADER_H + d.row * ROW_H + 5;
+                    const dy = startY + headerH + d.row * ROW_H + 5;
                     const w = d.teWidth * TE_PX - 4;
+                    const strokeColor = d.isUpstream ? '#065f46' : d.isShared ? '#92400e' : '#6b7280';
+                    const strokeW = d.isUpstream || d.isShared ? 2 : 1;
                     return (
                       <Group key={di}>
                         <Rect
                           x={dx} y={dy} width={w} height={28}
                           fill={d.color}
-                          stroke={d.isShared ? '#92400e' : '#6b7280'}
-                          strokeWidth={d.isShared ? 2 : 1}
+                          stroke={strokeColor}
+                          strokeWidth={strokeW}
                           cornerRadius={2}
                         />
                         <Text text={d.label} x={dx + 2} y={dy + 4} fontSize={8} fill="#1f2937" width={w - 4} />

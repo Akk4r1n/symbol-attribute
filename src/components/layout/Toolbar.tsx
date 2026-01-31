@@ -4,6 +4,7 @@ import type { ViewType } from '../../types';
 const VIEWS: { key: ViewType; label: string }[] = [
   { key: 'symboluebersicht', label: 'Symboluebersicht' },
   { key: 'installationsplan', label: 'Installationsplan' },
+  { key: 'netzkonfiguration', label: 'Netzkonfiguration' },
   { key: 'stromlaufplan', label: 'Stromlaufplan' },
   { key: 'aufbauplan', label: 'Aufbauplan' },
   { key: 'stueckliste', label: 'Stückliste' },
@@ -13,6 +14,8 @@ const VIEWS: { key: ViewType; label: string }[] = [
 export function Toolbar() {
   const activeView = useAppStore((s) => s.activeView);
   const setActiveView = useAppStore((s) => s.setActiveView);
+  const interactionMode = useAppStore((s) => s.interactionMode);
+  const setInteractionMode = useAppStore((s) => s.setInteractionMode);
   const raumName = useActiveRaumName();
 
   return (
@@ -35,6 +38,18 @@ export function Toolbar() {
           </button>
         ))}
       </nav>
+      {activeView === 'installationsplan' && (
+        <button
+          onClick={() => setInteractionMode(interactionMode === 'kabel' ? 'default' : 'kabel')}
+          className={`px-3 py-1.5 text-xs font-medium rounded transition-colors ${
+            interactionMode === 'kabel'
+              ? 'bg-green-600 text-white'
+              : 'text-gray-600 hover:bg-gray-100'
+          }`}
+        >
+          Kabel-Modus
+        </button>
+      )}
       <div className="ml-auto text-xs text-gray-500">{raumName}</div>
     </header>
   );
